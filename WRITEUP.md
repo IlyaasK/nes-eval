@@ -17,9 +17,10 @@ graded frames):
 | `nes-core`, a 2,600-line emulator written from the NESdev wiki | 0.5811 |
 | Reference with three injected bugs | 0.1948 |
 | Blank screen | 0.0039 |
+| Space Bunny Free, 2 hours in opencode | 0.0594 |
 
-No frontier model has been run yet. That is the next step, and the
-section at the end says what it will and won't tell us.
+The one model result so far is a small, free model on a short run; the
+last section covers what it shows and what it doesn't.
 
 ## 1. Emulators hand over palette numbers, not colours
 
@@ -170,14 +171,43 @@ is sensitive to exact timing, which is what keeps frontier models from
 all scoring 0.99, but it can also make the scores swing on a single
 boot-time detail.
 
+## The first model run
+
+The first attempt used OpenCode Zen's free Space Bunny model at medium
+thinking for 2 hours, in opencode
+([attempt repository](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free)).
+It scored 0.0594: barely above a blank screen.
+
+The work behind that number isn't nothing. In 1h34m of active time it
+wrote 3,538 lines covering the CPU, PPU, APU and all five mappers, built
+its own frame dumper and comparison scripts, and queried the oracle 78
+times. But its PPU draws every 8-pixel tile mirrored (nestest's menu reads
+"stset llA nuR"). The model found and fixed one bug in the same shift
+registers ("I had the direction backwards!") but not this one. A
+tile-level mirror destroys the edges the video metric compares, so a
+screen full of almost-right text scores about the same as nothing, and
+every test ROM's verdict screen fails. Audio, which works partially, is
+where its points come from (0.27).
+
+Two lessons about the harness, not the model:
+
+- **A rate limit ended the run early.** At 1h34m the free tier rejected
+  one request. opencode logged the error and then sat idle without
+  retrying or exiting, so the supervisor, which restarts an agent only
+  when its process exits, never noticed. The supervisor should also
+  watch for silence.
+- **The score is harsh on near-misses, by design.** Replay grading asks
+  whether the emulator behaves identically, and a structural metric
+  gives no credit for "the right tiles, flipped". That is the right call
+  for a benchmark about exactness, but it means early-stage emulators
+  bunch near zero; checkpoint scores (0.0578 at one hour) say little
+  about how close a model is to a breakthrough.
+
 ## What's next
 
-The benchmark is runnable: `quickstart/` has the task container, the
-black-box oracle and a 24-hour supervisor that restarts the agent,
-commits every 30 minutes and grades every 4 hours. What it doesn't have
-yet is a model result. The first run will answer the questions I can't
-answer from here:
-
+The benchmark runs end to end: one model has been through the full
+pipeline, from task container to published attempt. The open questions
+need stronger models and full-length runs:
 - **Difficulty.** An NES emulator is much smaller than a GBA emulator. If
   every frontier model reaches 0.95, the benchmark can't tell them apart,
   and the fix is harder tests or shorter runs.

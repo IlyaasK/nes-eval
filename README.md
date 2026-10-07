@@ -67,6 +67,19 @@ instruction in `TASK.md`, not something enforced.
 | `broken`: all three | **0.1948** | 0.0000 | 0.1500 | 0.5241 |
 | blank-screen stub | 0.0039 | 0.0000 | 0.0065 | 0.0000 |
 
+### Model runs
+
+| Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
+|---|---|---|---|---|---|---|---|
+| Space Bunny Free (medium thinking) | opencode 1.18.35 | 2 h | 0.0594 | 0.0000 | 0.0098 | 0.2673 | [repo](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free) |
+
+Each attempt repository holds the model's working directory saved every 15
+minutes, the full transcript (`scripts/render-opencode-transcript.py`
+renders opencode sessions) and the graded checkpoints. The Space Bunny run
+wrote a 3,500-line emulator whose PPU draws every 8-pixel tile mirrored,
+and lost its last 25 minutes when OpenCode Zen's free tier rate-limited a
+request and opencode stalled without retrying.
+
 **`nes-core`** ([`candidates/nes-core`](candidates/nes-core/README.md)) is
 the counterpart of GBA Eval's `gba-core` (which scores about 0.53 there):
 an original, MIT-licensed, 2,600-line emulator written from the NESdev
