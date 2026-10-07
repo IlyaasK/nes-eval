@@ -1,0 +1,86 @@
+Stallar
+=======
+Author: Wendel Scardua (ScarduaDev); music by Ted Kerr, sound effects by Shiru and Baŝto (public domain, see below)
+Source repository: https://github.com/wendelscardua/stallar
+Source revision: tag 0.1.0 (commit 0188c66b8aac4c76b3a86b3ca58e3ad3fe52ab52); source at https://github.com/wendelscardua/stallar/tree/0.1.0
+ROM download URL: https://github.com/wendelscardua/stallar/releases/download/0.1.0/stallar.nes
+ROM file: stallar.nes (byte-for-byte copy of the download; sha256 b5584e142db178fc356b70d635cb290f250a85569461b5915969617740c551f0)
+License: MIT (game); bundled music and sound effects public domain (CC0); MMC1/MMC3 helper code by cppchriscpp under MIT
+
+License source URL(s):
+  - https://github.com/wendelscardua/stallar/blob/0.1.0/LICENSE
+  - https://github.com/wendelscardua/stallar/blob/0.1.0/README.md
+  - https://github.com/wendelscardua/stallar/blob/0.1.0/src/mmc3/credit.txt
+  - https://opengameart.org/content/8-bit-rpg-battleencounter-theme
+  - https://opengameart.org/content/8-bit-victory-loop
+  - https://opengameart.org/content/8-bit-cave-loop
+
+
+------------------------------------------------------------------------
+LICENSE at tag 0.1.0 (MIT License)
+Verbatim from: https://github.com/wendelscardua/stallar/blob/0.1.0/LICENSE
+------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2021 Wendel Scardua
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+------------------------------------------------------------------------
+README.md 'Public domain content' section at tag 0.1.0
+Verbatim from: https://github.com/wendelscardua/stallar/blob/0.1.0/README.md
+------------------------------------------------------------------------
+
+### Public domain content
+* Music: Ted Karr
+* SFX: Shiru, Baŝto
+
+
+------------------------------------------------------------------------
+src/mmc3/credit.txt at tag 0.1.0
+Verbatim from: https://github.com/wendelscardua/stallar/blob/0.1.0/src/mmc3/credit.txt
+------------------------------------------------------------------------
+
+The MMC1 functions were written by cppchriscpp, 2018 Christopher Parker, and found here...
+
+https://github.com/cppchriscpp/nes-starter-kit/tree/master/source
+
+Under MIT License.
+
+Also, some modifications have been made by Doug Fraker, 2019.
+
+
+------------------------------------------------------------------------
+Provenance notes
+------------------------------------------------------------------------
+
+- The release asset was uploaded by the repository owner (wendelscardua)
+  to the 0.1.0 GitHub release.
+- src/music/soundtrack.txt at the tag lists the tracks "RPGBattleTheme -
+  Ted Kerr", "victoryloop - Ted Kerr" and "Cave - Ted Kerr". Ted Kerr's
+  OpenGameArt uploads (account Wolfgang_) with those titles list the
+  license as CC0:
+    https://opengameart.org/content/8-bit-rpg-battleencounter-theme (License(s): CC0; Attribution Notice: Ted Kerr)
+    https://opengameart.org/content/8-bit-victory-loop (License(s): CC0)
+    https://opengameart.org/content/8-bit-cave-loop (License(s): CC0)
+- src/music/credits.md at this tag is a stale copy of File Fixers'
+  music credits and does not describe this game's soundtrack;
+  soundtrack.txt and the README above do.

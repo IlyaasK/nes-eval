@@ -1,0 +1,298 @@
+Development test ROMs (blargg / Shay Green)
+============================================
+Author: Shay Green ("blargg", gblargg@gmail.com)
+Source (as vendored here): https://github.com/doublegate/RustyNES at commit 30e6b98bcb30dc057221454c7c66a96487fe03d8, directory tests/roms/ (local copy: third_party/RustyNES/tests/roms/)
+Upstream aggregator: https://github.com/christopherpow/nes-test-roms at commit 95d8f621ae55cee0d09b91519a8989ae0e64753b; every file below is byte-identical to the aggregator path listed for it
+License: Public domain, as documented by RustyNES tests/roms/LICENSES.md and tests/roms/blargg/README.md (quoted below)
+
+License source URL(s):
+  - https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
+  - https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/blargg/README.md
+  - https://www.nesdev.org/wiki/Emulator_tests (lists blargg as the author of each suite)
+
+Caveat: the original readme.txt files (quoted below) identify blargg as the
+author but contain no license statement and no usage restriction. No
+explicit public-domain dedication written by blargg himself was found at an
+author-controlled source (his old sites, slack.net/~ant and
+blargg.8bitalley.com, did not respond when checked). The public-domain
+status is as RustyNES documents it.
+
+------------------------------------------------------------------------
+Files (name here <- aggregator path; sha256)
+------------------------------------------------------------------------
+
+ppu_vbl_nmi__02-vbl_set_time.nes <- ppu_vbl_nmi/rom_singles/02-vbl_set_time.nes
+    sha256 dd98856130078844e3aa4bd95a9be8ab501ea84c089f1d8ad49a1b20af4b3a80
+ppu_vbl_nmi__03-vbl_clear_time.nes <- ppu_vbl_nmi/rom_singles/03-vbl_clear_time.nes
+    sha256 787fdaa4dd6c5b6df5f4308fb6d55b57e2c2f69bd5ecdf8ad5c69735db4fcc72
+ppu_vbl_nmi__04-nmi_control.nes <- ppu_vbl_nmi/rom_singles/04-nmi_control.nes
+    sha256 84722c75b896c47c8642f83220230fe14f0a31e55e26ecb83c400e6a26d91b32
+ppu_vbl_nmi__06-suppression.nes <- ppu_vbl_nmi/rom_singles/06-suppression.nes
+    sha256 811dd5997bbf48c2e5687ab06845f17ea76b2be472786596c334137582cc72aa
+ppu_vbl_nmi__07-nmi_on_timing.nes <- ppu_vbl_nmi/rom_singles/07-nmi_on_timing.nes
+    sha256 1ed154363660b5775b112ae63ce9bb4e400ebde2afef4d0ac12fc433efda3702
+ppu_vbl_nmi__08-nmi_off_timing.nes <- ppu_vbl_nmi/rom_singles/08-nmi_off_timing.nes
+    sha256 1d2a4093091c8e58a7f99d6a3531bbc6346b52cfc59bcb17ca04c1f2376cf2fc
+ppu_vbl_nmi__09-even_odd_frames.nes <- ppu_vbl_nmi/rom_singles/09-even_odd_frames.nes
+    sha256 1ac04283021ddd9294cc74ee709c55e20a350dc4815c15a8a93b3654837e858d
+ppu_vbl_nmi__10-even_odd_timing.nes <- ppu_vbl_nmi/rom_singles/10-even_odd_timing.nes
+    sha256 7217d2d172ce11ad45c4da40c2f22201cf0eb758bc2cd8dd39d2cf0a7d4ca83e
+sprite_hit_tests__02.alignment.nes <- sprite_hit_tests_2005.10.05/02.alignment.nes
+    sha256 125bbb3ce1e67370f1f4559c2ad3221e52a3e98880b9789400292b5f3a8b39e6
+sprite_hit_tests__03.corners.nes <- sprite_hit_tests_2005.10.05/03.corners.nes
+    sha256 9dd57776bc6267fe6183c5521d67cbe3fccc6662ae545eb2c419949bf39644d3
+sprite_hit_tests__04.flip.nes <- sprite_hit_tests_2005.10.05/04.flip.nes
+    sha256 5f7142bddb51b7577f93fa22f9f668efebbeea00346d7255089e1863acb9d46a
+sprite_hit_tests__05.left_clip.nes <- sprite_hit_tests_2005.10.05/05.left_clip.nes
+    sha256 69b329658c17b953f149c2f0de77eb272089df22c815bd2fd3d6f43206791c13
+sprite_hit_tests__06.right_edge.nes <- sprite_hit_tests_2005.10.05/06.right_edge.nes
+    sha256 8e6653fcb869e06873e29e5e4423122ea72ba0bf38f3ba9e39f471420db759a4
+sprite_hit_tests__07.screen_bottom.nes <- sprite_hit_tests_2005.10.05/07.screen_bottom.nes
+    sha256 05849956f80267838c5b6556310266b794078a4300841cbb36339fd141905a0b
+sprite_hit_tests__08.double_height.nes <- sprite_hit_tests_2005.10.05/08.double_height.nes
+    sha256 127fd966b6b32d6d88a53c5f59d7e938827783c9ad056091f119be1c4ab21c71
+sprite_overflow_tests__2.Details.nes <- sprite_overflow_tests/2.Details.nes
+    sha256 6405a7ff1042fe7a50d9bfe521e43460a3251799425bd3e1863b29b67e7cd587
+sprite_overflow_tests__3.Timing.nes <- sprite_overflow_tests/3.Timing.nes
+    sha256 2252ec8fc35932b408f409ef9b6863edf084aa871fc10ad180b0ac4c2468ef8c
+apu_test__2-len_table.nes <- apu_test/rom_singles/2-len_table.nes
+    sha256 c002ff1483b4dfb36a6eb004d49739cd58a2dff16e0bac167d5a7c12235caeeb
+apu_test__4-jitter.nes <- apu_test/rom_singles/4-jitter.nes
+    sha256 bff573d72d0f134fe307f0bb8b968b8d2ffdb85e8aadad9c152839068d6db32a
+apu_test__5-len_timing.nes <- apu_test/rom_singles/5-len_timing.nes
+    sha256 4d88f8cc0b21303dc151af4d0f4169d79284634a73082d7ea1ae5cfafedd1e46
+apu_test__6-irq_flag_timing.nes <- apu_test/rom_singles/6-irq_flag_timing.nes
+    sha256 fc1daff82dd1a49c7c1242392ffbf1c6f44fb70156868582117f2a844cc4dffd
+apu_test__8-dmc_rates.nes <- apu_test/rom_singles/8-dmc_rates.nes
+    sha256 5d9a79a505b37fa277cacc95a362f7e2a56e59ace7a698213d78432cc06a8867
+cpu_interrupts_v2__1-cli_latency.nes <- cpu_interrupts_v2/rom_singles/1-cli_latency.nes
+    sha256 e402d36118f77dcbbe8ddca90c15fc76a46bcb30b25cb028c383e4a621de5fc0
+cpu_interrupts_v2__3-nmi_and_irq.nes <- cpu_interrupts_v2/rom_singles/3-nmi_and_irq.nes
+    sha256 3008a9524d174a8aca562ff0361eba81da53e38cf1ebb5125322fe151f14d945
+mmc3_test_2__2-details.nes <- mmc3_test_2/rom_singles/2-details.nes
+    sha256 e7af16c764b119e60effb7b1cfeec3dd8e2e657041283693cdbbeedb4081f1e3
+mmc3_test_2__4-scanline_timing.nes <- mmc3_test_2/rom_singles/4-scanline_timing.nes
+    sha256 14a220b9d1272acc7a820ab38e9762a7cdf2d54c65e753be87f23dfcaf1bb845
+branch_timing_tests__1.Branch_Basics.nes <- branch_timing_tests/1.Branch_Basics.nes
+    sha256 7b69e3044eaeb86317147a900d1f4a467b666f59d375ec1ba6658233f23786cd
+cpu_reset__registers.nes <- cpu_reset/registers.nes
+    sha256 a30f33fb6c9f56012fba38dc85ddc3dccc06bfc0b25fef7711b63f8207279715
+ppu_open_bus.nes <- ppu_open_bus/ppu_open_bus.nes
+    sha256 d4208a3ff6340532dd0fced7f9d408d5b6585853a0ddc9c1f64ee1722ef08e67
+instr_timing.nes <- instr_timing/instr_timing.nes
+    sha256 3d1bca14266f1e25b75a34ddd29c9df1ce9c6d990c8663a218f72e7861660fb0
+
+
+------------------------------------------------------------------------
+RustyNES tests/roms/LICENSES.md, lines 1-21
+Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
+------------------------------------------------------------------------
+
+# Test ROM provenance and licensing
+
+All ROMs vendored under `tests/roms/` are public-domain works released
+specifically for the purpose of validating NES emulator implementations.
+No commercial Nintendo software is bundled. End users who want to test
+against commercial dumps they own should drop them in
+`tests/roms/external/` (gitignored).
+
+The corpus below was sourced from
+`https://github.com/christopherpow/nes-test-roms` (commit at clone time
+on the build host). Each individual ROM has its own author and license
+statement; aggregator status of the GitHub repository does not change
+those underlying terms.
+
+## blargg's NES test ROMs (Shay Green, `gblargg@gmail.com`)
+
+Shay Green ("blargg") released his NES test ROM suites into the public
+domain. The accompanying `readme.txt` for each suite identifies him as
+the author and contains no usage restrictions. The suites are widely
+mirrored and redistributed; their public-domain status is documented
+e.g. on the NESdev wiki (`https://www.nesdev.org/wiki/Emulator_tests`).
+
+
+------------------------------------------------------------------------
+RustyNES tests/roms/LICENSES.md, table rows for the suites used here
+Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
+------------------------------------------------------------------------
+
+| File | Suite | Source path in nes-test-roms | Mapper | Author | License |
+|------|-------|------------------------------|--------|--------|---------|
+| `assorted/cpu_reset_registers.nes` | CPU reset | `cpu_reset/registers.nes` | NROM (0) | blargg | Public domain |
+| `blargg/instr_timing/instr_timing.nes` + `1-instr_timing`/`2-branch_timing` | instr_timing (aggregate + 2 sub-ROMs) | `instr_timing/{instr_timing.nes,rom_singles/*.nes}` | MMC1 (1) | blargg | Public domain (T-71-003) |
+| `blargg/branch_timing_tests/*.nes` | Branch timing | `branch_timing_tests/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/ppu_vbl_nmi/01-vbl_basics.nes` ... `10-even_odd_timing.nes` | PPU VBL/NMI timing (10 sub-ROMs) | `ppu_vbl_nmi/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/ppu_open_bus/ppu_open_bus.nes` | PPU open bus | `ppu_open_bus/ppu_open_bus.nes` | NROM (0) | blargg | Public domain |
+| `blargg/sprite_overflow_tests/1.Basics.nes` ... `5.Emulator.nes` | Sprite overflow (5 sub-ROMs) | `sprite_overflow_tests/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/sprite_hit_tests/01.basics.nes` ... `11.edge_timing.nes` | Sprite-zero hit (11 sub-ROMs) | `sprite_hit_tests_2005.10.05/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/apu_test/1-len_ctr.nes` ... `8-dmc_rates.nes` | APU register I/O + DMC (8 sub-ROMs) | `apu_test/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/cpu_interrupts_v2/1-cli_latency.nes` ... `5-branch_delays_irq.nes` | CPU interrupt timing (5 sub-ROMs) | `cpu_interrupts_v2/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
+| `blargg/mmc3_test_2/1-clocking.nes` ... `6-MMC3_alt.nes` | MMC3 IRQ + banking validation (6 sub-ROMs; modern $6000 protocol) | `mmc3_test_2/rom_singles/*.nes` | MMC3 (4) | blargg | Public domain |
+
+
+------------------------------------------------------------------------
+RustyNES tests/roms/blargg/README.md, 'License' section
+Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/blargg/README.md
+------------------------------------------------------------------------
+
+## License
+
+Public domain. blargg released each suite explicitly for emulator
+validation purposes; the upstream `readme.txt` files (preserved in
+each subdirectory) carry no usage restrictions.
+
+
+------------------------------------------------------------------------
+ppu_vbl_nmi/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/ppu_vbl_nmi/readme.txt
+------------------------------------------------------------------------
+
+NES PPU Tests
+-------------
+These tests verify the behavior and timing of the NTSC PPU's VBL flag,
+NMI enable, and NMI interrupt. Timing is tested to an accuracy of one
+PPU clock. Note that often the NES starts up with a different value in
+the clock divider, causing PPU timing to be slightly different and fail
+some of the tests. These test the timings that have been most fully
+documented and emulated.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+sprite_hit_tests_2005.10.05/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/sprite_hit_tests_2005.10.05/readme.txt
+------------------------------------------------------------------------
+
+NTSC NES PPU Sprite 0 Test ROMs
+-------------------------------
+These ROMs test much of sprite 0 hit behavior on a NTSC NES PPU. They
+have been tested on an actual NES and all give a passing result. I wrote
+them to verify that my NES emulator's sprite 0 hit emulation was working
+properly.
+[...]
+-- 
+Shay Green <hotpop.com@blargg> (swap to e-mail)
+
+
+------------------------------------------------------------------------
+sprite_overflow_tests/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/sprite_overflow_tests/readme.txt
+------------------------------------------------------------------------
+
+NTSC NES PPU Sprite Overflow Flag Test ROMs
+-------------------------------------------
+These ROMs test the sprite overflow flag in bit 5 of $2002. When run on
+a NES they all give a passing result. Each ROM runs several tests and
+reports the result on screen and by beeping a number of times. See below
+for the meaning of failure codes for each test. THE TESTS MUST BE RUN
+(*AND* *PASS*) IN ORDER, because some earlier ROMs test things that
+later ones assume will work properly.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+apu_test/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/apu_test/readme.txt
+------------------------------------------------------------------------
+
+NES APU Tests
+-------------
+These ROMs test many aspects of the APU that are visible to the CPU.
+Really obsucre things are not tested here.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+cpu_interrupts_v2/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/cpu_interrupts_v2/readme.txt
+------------------------------------------------------------------------
+
+NES CPU Interrupt Tests
+-----------------------
+Tests behavior and timing of CPU in the presence of interrupts, both IRQ
+and NMI.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+mmc3_test_2/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/mmc3_test_2/readme.txt
+------------------------------------------------------------------------
+
+NES MMC3 Tests
+--------------
+These tests verify a small part of MMC3 (and some MMC6) behavior, mostly
+related to the scanline counter and IRQ. They should be run in order.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+branch_timing_tests/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/branch_timing_tests/readme.txt
+------------------------------------------------------------------------
+
+NES 6502 Branch Timing Test ROMs
+--------------------------------
+These ROMs test timing of the branch instruction, including edge cases
+which an emulator might get wrong. When run on a NES they all give a
+passing result. Each ROM runs several tests and reports the result on
+screen and by beeping a number of times. See below for the meaning of
+failure codes for each test. THE TESTS MUST BE RUN (*AND* *PASS*) IN
+ORDER, because some earlier ROMs test things that later ones assume will
+work properly.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+cpu_reset/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/cpu_reset/readme.txt
+------------------------------------------------------------------------
+
+CPU Power/Reset Tests
+---------------------
+Verifies CPU register values at power, and changes that occur during
+reset. Also verifies that RAM isn't modified during reset.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+ppu_open_bus/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/ppu_open_bus/readme.txt
+------------------------------------------------------------------------
+
+NES PPU Open-Bus Test
+---------------------
+Tests behavior when reading from open-bus PPU bits/registers, those bits
+that aren't otherwise defined. Unlike other open-bus addresses, the PPU
+ones are separate. Takes about 5 seconds to run.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>
+
+
+------------------------------------------------------------------------
+instr_timing/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)
+Verbatim from: https://github.com/christopherpow/nes-test-roms/blob/95d8f621ae55cee0d09b91519a8989ae0e64753b/instr_timing/readme.txt
+------------------------------------------------------------------------
+
+NES CPU Instruction Timing Test
+-------------------------------
+These tests verify timing of all NES CPU instructions, except the 12
+that freeze the CPU.
+[...]
+-- 
+Shay Green <gblargg@gmail.com>

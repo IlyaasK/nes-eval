@@ -1,0 +1,64 @@
+robotfindskitten (NES port)
+===========================
+Author: Damian Yerrick (pinobatch); NES port of robotfindskitten, originally by Leonard Richardson (1997)
+Source repository: https://github.com/pinobatch/rfk-nes
+Source revision: tag v0.10 (commit 4d26698fcce966b6d9e982aa06cbb2cabad4750a); source at https://github.com/pinobatch/rfk-nes/tree/v0.10
+ROM download URL: https://github.com/pinobatch/rfk-nes/releases/download/v0.10/robotfindskitten.nes
+ROM file: robotfindskitten.nes (byte-for-byte copy of the download; sha256 13abbea91f553780c88c2a85a40b7e86fd5916026c01bfc4f88a8b9b9a9abfe1)
+License: Zlib
+
+License source URL(s):
+  - https://github.com/pinobatch/rfk-nes/blob/v0.10/LICENSE
+  - https://github.com/pinobatch/rfk-nes/blob/v0.10/README.md#legal
+
+
+------------------------------------------------------------------------
+LICENSE at tag v0.10 (zlib License)
+Verbatim from: https://github.com/pinobatch/rfk-nes/blob/v0.10/LICENSE
+------------------------------------------------------------------------
+
+The zlib License
+================
+
+Copyright (c) 2017 Damian Yerrick
+
+This software is provided 'as-is', without any express or implied warranty. In
+no event will the authors be held liable for any damages arising from the use of
+this software.
+
+Permission is granted to anyone to use this software for any purpose, including
+commercial applications, and to alter it and redistribute it freely, subject to
+the following restrictions:
+
+1.  The origin of this software must not be misrepresented; you must not claim
+    that you wrote the original software. If you use this software in a product,
+    an acknowledgment in the product documentation would be appreciated but is
+    not required.
+
+2.  Altered source versions must be plainly marked as such, and must not be
+    misrepresented as being the original software.
+
+3.  This notice may not be removed or altered from any source distribution.
+
+
+------------------------------------------------------------------------
+README.md 'Legal' section at tag v0.10
+Verbatim from: https://github.com/pinobatch/rfk-nes/blob/v0.10/README.md
+------------------------------------------------------------------------
+
+Legal
+-----
+Copyright 2014 Damian Yerrick
+
+zlib License
+
+
+------------------------------------------------------------------------
+Provenance note
+------------------------------------------------------------------------
+
+The release asset was uploaded by the repository owner (pinobatch) to the
+v0.10 GitHub release. src/default.nki in the repository says some
+non-kitten-item texts were "Inspired by vanilla.nki" (the original
+robotfindskitten item list). The complete source of this exact ROM is
+available at https://github.com/pinobatch/rfk-nes/tree/v0.10.

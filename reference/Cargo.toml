@@ -1,0 +1,20 @@
+[package]
+name = "nes-reference"
+version = "0.1.0"
+edition.workspace = true
+license = "GPL-3.0-or-later" # links RustyNES (GPL-3.0-or-later)
+description = "RustyNES behind the NES Eval wasm ABI (spec/ABI.md)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# Injected emulator bugs for the candidates/broken* modules. Never enable
+# any of them for the reference.
+bug-scanline = []  # video: output is one scanline late
+bug-ab-swap = []   # input: A and B swapped
+bug-no-tri-noise = [] # audio: triangle and noise channels missing
+broken = ["bug-scanline", "bug-ab-swap", "bug-no-tri-noise"]
+
+[dependencies]
+rustynes-core.workspace = true

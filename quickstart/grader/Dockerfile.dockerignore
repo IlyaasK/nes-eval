@@ -1,0 +1,7 @@
+# Build context is the repo root; send only what the grader image needs.
+*
+!Cargo.toml
+!Cargo.lock
+!harness/
+!spec/nes_palette.pal
+!quickstart/grader/

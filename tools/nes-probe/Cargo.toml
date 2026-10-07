@@ -1,0 +1,10 @@
+[package]
+name = "nes-probe"
+version = "0.1.0"
+edition.workspace = true
+license = "GPL-3.0-or-later" # links RustyNES (GPL-3.0-or-later)
+description = "Corpus-authoring tool: run RustyNES natively on a ROM + replay, report screen changes, dump PNGs"
+
+[dependencies]
+rustynes-core.workspace = true
+lockstep = { path = "../../harness/lockstep" }

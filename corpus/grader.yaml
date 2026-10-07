@@ -1,0 +1,34 @@
+# Grader configuration. Defaults to <corpus_dir>/grader.yaml.
+# All fields are optional — see GraderConfig in harness/grader/src/main.rs.
+
+# Escape hatch for candidates that need extra warmup on top of their
+# own emu_boot_frames() value. Conformant candidates leave this at 0.
+candidate_boot_frames: 0
+
+# wasmtime fuel (≈ wasm instructions) per call. A trapped frame keeps the
+# previous framebuffer and is scored like any other wrong frame.
+fuel_per_frame: 500000000
+fuel_load_rom: 60000000000
+
+# ── Section weights ──────────────────────────────────────────────
+# overall = Σ(section_weight * section_score)
+section_weights:
+  procedural: 0.20
+  replay: 0.60
+  audio: 0.20
+
+# ── Subsystem weights (within each section) ──────────────────────
+# Testcases are grouped by subsystem. Each subsystem gets a fixed weight.
+# Adding testcases to a subsystem improves measurement precision without
+# shifting other subsystems' weights.
+subsystem_weights:
+  procedural:
+    cpu: 0.35
+    ppu: 0.30
+    apu: 0.15
+    mapper: 0.20
+  replay:
+    gameplay: 1.00
+  audio:
+    apu: 0.50
+    game_audio: 0.50

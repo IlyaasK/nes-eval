@@ -1,0 +1,5 @@
+# Press Start at frame 30 (held 6 frames).
+# Format: <frame> <keys_hex>
+0 00
+30 08
+36 00

@@ -1,0 +1,82 @@
+File Fixers
+===========
+Author: Wendel Scardua (ScarduaDev); music by celestialghost8 and Phillip Miller (public domain / CC0, see below)
+Source repository: https://github.com/wendelscardua/file-fixers
+Source revision: tag 0.1.0 (commit d12863b6d5f02f4c23915895d3117e55e3fa74b3); source at https://github.com/wendelscardua/file-fixers/tree/0.1.0
+ROM download URL: https://github.com/wendelscardua/file-fixers/releases/download/0.1.0/file-fixers.nes
+ROM file: file-fixers.nes (byte-for-byte copy of the download; sha256 ba6c88a13bb63f180e5e542258c53e5676e3f1514898bfd16aba4da43c34cc34)
+License: MIT (game); bundled music public domain (CC0); MMC1/MMC3 helper code by cppchriscpp under MIT
+
+License source URL(s):
+  - https://github.com/wendelscardua/file-fixers/blob/0.1.0/LICENSE
+  - https://github.com/wendelscardua/file-fixers/blob/0.1.0/src/music/credits.md
+  - https://github.com/wendelscardua/file-fixers/blob/0.1.0/src/mmc3/credit.txt
+  - https://opengameart.org/content/inevitable-doom
+  - https://opengameart.org/content/free-nes-music-pack
+
+
+------------------------------------------------------------------------
+LICENSE at tag 0.1.0 (MIT License)
+Verbatim from: https://github.com/wendelscardua/file-fixers/blob/0.1.0/LICENSE
+------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2021 Wendel Scardua
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+------------------------------------------------------------------------
+src/music/credits.md at tag 0.1.0 (music credits)
+Verbatim from: https://github.com/wendelscardua/file-fixers/blob/0.1.0/src/music/credits.md
+------------------------------------------------------------------------
+
+Music on soundtrack.ftm
+=======================
+
+* "Inevitable Doom" - celestialghost8 - https://opengameart.org/content/inevitable-doom (public domain)
+* "cheery" and "upbeat" - Phillip Miller - https://opengameart.org/content/free-nes-music-pack (public domain)
+
+
+------------------------------------------------------------------------
+src/mmc3/credit.txt at tag 0.1.0
+Verbatim from: https://github.com/wendelscardua/file-fixers/blob/0.1.0/src/mmc3/credit.txt
+------------------------------------------------------------------------
+
+The MMC1 functions were written by cppchriscpp, 2018 Christopher Parker, and found here...
+
+https://github.com/cppchriscpp/nes-starter-kit/tree/master/source
+
+Under MIT License.
+
+Also, some modifications have been made by Doug Fraker, 2019.
+
+
+------------------------------------------------------------------------
+Provenance notes
+------------------------------------------------------------------------
+
+- The release asset was uploaded by the repository owner (wendelscardua)
+  to the 0.1.0 GitHub release.
+- src/music/soundtrack.txt at the tag lists the tracks "Inevitable Doom -
+  celestialghost8", "upbeat - Phillip Miller" and "cheery - Phillip
+  Miller". Their OpenGameArt pages list the license as CC0:
+    https://opengameart.org/content/inevitable-doom (author celestialghost8, License(s): CC0)
+    https://opengameart.org/content/free-nes-music-pack (author pmiller, License(s): CC0)

@@ -1,0 +1,79 @@
+# Task environment + reference oracle sidecar.
+#
+# `task`     — the container the agent works in: Rust toolchain, wasmtime,
+#              spec/, hardware docs, dev ROMs, oracle client. Idle shell;
+#              you `docker compose exec` into it (./shell.sh) to work.
+# `services` — the reference emulator (nes-ref.wasm) over HTTP on :8001,
+#              reachable only from `task` over the internal `oracle`
+#              network; it has no route to the internet. Token left empty,
+#              so the oracle is open inside this network (fine locally).
+#
+# `task` is also on the default network so an agent CLI can reach its
+# model API. Nothing here restricts its other egress; TASK.md tells the
+# agent not to use the internet.
+#
+# Usage:
+#   docker compose up -d --build      # builds images on first run
+#   ./shell.sh                        # drop into a shell as `agent`
+#   ./shell.sh cargo build ...        # or run one-shot commands
+#
+# Your work lives in the `task-work` named volume. The first mount copies
+# the image's baked /task/ contents (spec, TASK.md, dev-roms, initial git
+# repo) into the volume; later mounts preserve your changes.
+
+name: nes-eval
+
+services:
+  task:
+    build:
+      context: ..
+      dockerfile: quickstart/task/Dockerfile
+    image: nes-eval-task:latest
+    container_name: nes-eval-task
+    networks: [oracle, default]
+    restart: unless-stopped
+    user: "1000:1000"
+    working_dir: /task
+    # Compose auto-loads `.env` from this directory. Copy .env.example
+    # → .env and fill in whichever model keys your agent needs; unset
+    # vars are passed through as empty strings.
+    environment:
+      NES_SERVICES_URL: "http://services:8001"
+      NES_SERVICES_TOKEN: ""
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      CLAUDE_CODE_OAUTH_TOKEN: "${CLAUDE_CODE_OAUTH_TOKEN:-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+      CODEX_API_KEY: "${CODEX_API_KEY:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GOOGLE_API_KEY: "${GOOGLE_API_KEY:-}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+    volumes:
+      - task-work:/task
+      - agent-home:/home/agent
+    command: ["sleep", "infinity"]
+
+  services:
+    build:
+      context: ..
+      dockerfile: quickstart/services/Dockerfile
+    image: nes-eval-services:latest
+    container_name: nes-eval-services
+    networks: [oracle]
+    restart: unless-stopped
+    # task starts first so the named volume is populated from the task
+    # image (spec/, dev-roms/, TASK.md, initial git repo). Then services
+    # attaches to the same /task — oracle-server.py writes session state
+    # to /task/.oracle-sessions, which the agent in `task` can also see.
+    depends_on: [task]
+    environment:
+      NES_SERVICES_TOKEN: ""
+    volumes:
+      - task-work:/task
+
+volumes:
+  task-work:
+  agent-home:
+
+networks:
+  oracle:
+    internal: true

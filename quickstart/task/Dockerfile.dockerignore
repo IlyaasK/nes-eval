@@ -1,0 +1,7 @@
+# Build context is the repo root; send only what the task image needs.
+*
+!spec/ABI.md
+!spec/nes_palette.pal
+!spec/docs/
+!corpus/roms/dev/
+!quickstart/task/

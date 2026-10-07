@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = ["reference", "harness/lockstep", "harness/grader", "harness/oracle", "tools/nes-probe"]
+exclude = ["third_party"]
+
+[workspace.package]
+edition = "2024"
+
+[workspace.dependencies]
+rustynes-core = { path = "third_party/RustyNES/crates/rustynes-core", default-features = false, features = ["std"] }
+
+[profile.release]
+debug = false

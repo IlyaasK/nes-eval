@@ -1,0 +1,25 @@
+[package]
+name = "oracle"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+
+# Black-box reference oracle for the agent's task environment.
+#
+# Runs the reference wasm (reference/nes-ref.wasm) behind the same
+# 10-function ABI that candidates implement, so the agent can probe
+# reference behaviour on any ROM + input sequence without seeing its
+# source. Loads the wasm through the grader's WasmCandidate, so `oracle run`
+# output is exactly what the grader sees.
+#
+# Usage:
+#   oracle run <rom> <frames> [--replay <file>] [--dump-frames <dir>] [--dump-final <dir>]
+#                             [--dump-audio <file>] [--from <n>]
+#   oracle info
+#
+# Forked from GBA Eval's harness/oracle (github.com/mechanize-work/gba-eval, MIT).
+
+[dependencies]
+lockstep = { path = "../lockstep" }
+grader   = { path = "../grader" }
+serde_json = "1"

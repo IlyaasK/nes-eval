@@ -1,0 +1,6 @@
+/target/
+/out/
+/results/
+# Local reference material, not part of NES Eval
+/gba-eval/
+/gba-eval-blog/

@@ -1,0 +1,78 @@
+RHDE: Furniture Fight
+=====================
+Author: Damian Yerrick (pinobatch; program); concept NovaSquirrel and Sean Sells; graphics Pino P. and NovaSquirrel; music The Eighth Bit and an anonymous contributor (per USAGE.html credits)
+Source repository: https://github.com/pinobatch/rhde-nes
+Source revision: tag v0.07 (commit 71b18aeb54fefa16373cb3ad2996a2aff90181b5); source at https://github.com/pinobatch/rhde-nes/tree/v0.07
+ROM download URL: https://github.com/pinobatch/rhde-nes/releases/download/v0.07/rhde.nes
+ROM file: rhde.nes (byte-for-byte copy of the download; sha256 b2c4748a5b3651e393572046daf126213653b58b55472cdfdf4b863834dd0241)
+License: GNU All-Permissive License (author's wording below); copying and distribution permitted in any medium without royalty
+
+License source URL(s):
+  - https://github.com/pinobatch/rhde-nes/blob/v0.07/README.md#legal
+  - https://github.com/pinobatch/rhde-nes/blob/v0.07/LICENSE.txt
+  - https://github.com/pinobatch/rhde-nes/blob/v0.07/USAGE.html#credits
+
+
+------------------------------------------------------------------------
+README.md 'Legal' section at tag v0.07
+Verbatim from: https://github.com/pinobatch/rhde-nes/blob/v0.07/README.md
+------------------------------------------------------------------------
+
+Legal
+-----
+The demo is distributed under the following license, based on the
+GNU All-Permissive License:
+
+> Copyright 2011-2016 Damian Yerrick
+> 
+> Copying and distribution of this file, with or without
+> modification, are permitted in any medium without royalty provided
+> the copyright notice and this notice are preserved in all source
+> code copies.  This file is offered as-is, without any warranty.
+
+
+------------------------------------------------------------------------
+LICENSE.txt at tag v0.07
+Verbatim from: https://github.com/pinobatch/rhde-nes/blob/v0.07/LICENSE.txt
+------------------------------------------------------------------------
+
+Copying and distribution of this file, with or without
+modification, are permitted in any medium without royalty provided
+the copyright notice and this notice are preserved in all source
+code copies.  This file is offered as-is, without any warranty.
+
+
+------------------------------------------------------------------------
+USAGE.html 'Credits' section at tag v0.07 (HTML source; states the license applies to the manual and the associated program)
+Verbatim from: https://github.com/pinobatch/rhde-nes/blob/v0.07/USAGE.html
+------------------------------------------------------------------------
+
+<h2 id="credits">Credits</h2>
+<dl class="compact">
+<dt>Concept</dt>
+<dd>NovaSquirrel (Joshua Hoffman) and Sean Sells</dd>
+<dt>Program</dt>
+<dd>Pino P. (Damian Yerrick)</dd>
+<dt>Graphics</dt>
+<dd>Pino P. and NovaSquirrel</dd>
+<dt>Music</dt>
+<dd>The Eighth Bit and an anonymous contributor</dd>
+</dl><p>
+The following applies to the manual and the associated program:
+</p><blockquote>
+Copyright 2014 Damian Yerrick<br><br>
+Copying and distribution of this file, with or without
+modification, are permitted in any medium without royalty provided
+the copyright notice and this notice are preserved in all source
+code copies.  This file is offered as-is, without any warranty.
+</blockquote><p>
+No relation to <a href="https://en.wikipedia.org/wiki/Rampart_%28video_game%29">WB Games</a>, <a href="https://en.wikipedia.org/wiki/Animal_Crossing">Nintendo</a>, <a href="https://en.wikipedia.org/wiki/Red_Hat">Red Hat</a>, or <a href="http://www.rhide.com/">Robert Höhne</a>.
+</p>
+
+
+------------------------------------------------------------------------
+Provenance note
+------------------------------------------------------------------------
+
+The release asset was uploaded by the repository owner (pinobatch) to the
+v0.07 GitHub release.
