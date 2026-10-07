@@ -104,6 +104,9 @@ The container ships with no agent CLI. Install one into `agent-home`:
 # Codex CLI (static binary from the GitHub release; the image has no npm)
 ./shell.sh bash -lc 'curl -fsSL https://github.com/openai/codex/releases/latest/download/codex-x86_64-unknown-linux-musl.tar.gz \
   | tar -xz -C ~/.local/bin && mv ~/.local/bin/codex-x86_64-unknown-linux-musl ~/.local/bin/codex'
+
+# opencode (pinned release; installs to ~/.opencode/bin)
+./shell.sh bash -lc 'curl -fsSL https://opencode.ai/install | bash -s -- --version 1.18.35 --no-modify-path'
 ```
 
 The compose file passes `ANTHROPIC_API_KEY`, `CLAUDE_CODE_OAUTH_TOKEN`,
@@ -149,6 +152,11 @@ AGENT_CONTINUE_CMD='claude -p --continue --dangerously-skip-permissions --output
 AGENT_CMD='codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check' \
 AGENT_CONTINUE_CMD='codex exec resume --last --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check' \
   ./run-agent.sh --hours 24 --name codex-run
+
+# opencode, here with OpenCode Zen's free Space Bunny model at medium thinking
+AGENT_CMD='~/.opencode/bin/opencode run -m opencode/space-bunny-free --variant medium --auto --format json' \
+AGENT_CONTINUE_CMD='~/.opencode/bin/opencode run --continue -m opencode/space-bunny-free --variant medium --auto --format json' \
+  ./run-agent.sh --hours 2 --name space-bunny-run
 ```
 
 Options: `--hours H` (fractional allowed), `--name RUN`,

@@ -18,6 +18,11 @@
 #
 # Output: ./results/<name>/ at repo root (<name> may contain slashes).
 # summary.json has the overall score; grade.sh echoes it on success.
+#
+# Memory: the grader runs testcases in parallel and each worker holds one
+# decoded reference recording, about 0.65 GiB peak per worker (measured: 1
+# worker 0.79 GiB, 2 workers 1.48 GiB, 4 workers 2.74 GiB). Set
+# RAYON_NUM_THREADS=N to cap the workers on a machine short of RAM.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -115,6 +120,7 @@ if [ "$MODE" = "docker" ]; then
         echo "── Grading $WASM (docker) → $OUT ──"
     fi
     docker run --rm --user "$(id -u):$(id -g)" \
+        ${RAYON_NUM_THREADS:+-e RAYON_NUM_THREADS="$RAYON_NUM_THREADS"} \
         -v "$REPO":/repo:ro \
         -v "$REPO/corpus/reference-cache":/repo/corpus/reference-cache \
         -v "$WASM_DIR":/wasm:ro \
