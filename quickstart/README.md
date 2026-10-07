@@ -161,7 +161,12 @@ AGENT_CONTINUE_CMD='~/.opencode/bin/opencode run --continue -m opencode/space-bu
 
 Options: `--hours H` (fractional allowed), `--name RUN`,
 `--commit-every MINUTES`, `--grade-every HOURS`, `--native` (grade with
-`target/release/grader`). If `AGENT_CMD` mentions `NES_PROMPT` the prompt
+`target/release/grader`), `--stall-minutes M` (restart an agent whose
+output has been silent for M minutes, default 15; `STALL_DELAY` seconds
+between stopping and restarting it, default 120). The watchdog exists
+because opencode, on a rejected request, logs the error and waits
+forever; a supervisor that only restarts exited agents loses the rest of
+the run. `run.json` counts `stall_restarts`. If `AGENT_CMD` mentions `NES_PROMPT` the prompt
 is not appended; it is available as `$NES_PROMPT` and in the file
 `$NES_PROMPT_FILE` instead (e.g. `AGENT_CMD='my-agent --task-file "$NES_PROMPT_FILE"'`).
 `CONTINUE_PROMPT` overrides the continue prompt. Ctrl-C stops the agent,

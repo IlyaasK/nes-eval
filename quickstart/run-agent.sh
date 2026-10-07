@@ -6,6 +6,9 @@
 #     with TASK.md as the prompt; whenever the agent exits before time is
 #     up, re-invokes $AGENT_CONTINUE_CMD (default: $AGENT_CMD) with a short
 #     "continue working" prompt;
+#   - restarts the agent the same way if its output has been silent for
+#     --stall-minutes (default 15): a hung API call, e.g. a rate-limited
+#     request the agent never retries, otherwise wastes the rest of the run;
 #   - commits /task (`git add -A && git commit`) every --commit-every
 #     minutes (default 30);
 #   - every --grade-every hours (default 4) and once at the end, builds the
@@ -25,6 +28,8 @@
 #   --commit-every M   minutes between checkpoint commits (default 30)
 #   --grade-every H    hours between graded checkpoints (default 4)
 #   --native           grade with target/release/grader instead of the docker image
+#   --stall-minutes M  restart an agent whose log hasn't grown for M minutes
+#                      (default 15; 0 disables)
 #
 # Environment:
 #   AGENT_CMD            command run in the container; the prompt is appended
@@ -38,6 +43,8 @@
 #   RESTART_DELAY        seconds to wait before re-invoking an agent that ran
 #                        for under a minute (default 30), so a broken command
 #                        doesn't spin.
+#   STALL_DELAY          seconds to wait before restarting a stalled agent
+#                        (default 120), giving a rate limit time to clear.
 #
 # Output (results/<run>/): run.log (supervisor log), agent-NNN.log (each
 # invocation's output), <checkpoint>/ (grade output + nes_emu.wasm +
@@ -53,6 +60,7 @@ RUN=""
 COMMIT_MIN=30
 GRADE_HOURS=4
 GRADE_MODE=()
+STALL_MIN=15
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -61,7 +69,8 @@ while [ $# -gt 0 ]; do
         --commit-every) COMMIT_MIN="$2"; shift 2 ;;
         --grade-every)  GRADE_HOURS="$2"; shift 2 ;;
         --native)       GRADE_MODE=(--native); shift ;;
-        -h|--help)      sed -n '2,46p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        --stall-minutes) STALL_MIN="$2"; shift 2 ;;
+        -h|--help)      sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown argument: $1 (see --help)" >&2; exit 2 ;;
     esac
 done
@@ -73,6 +82,9 @@ fi
 [ -n "${AGENT_CMD:-}" ] || { echo "error: set AGENT_CMD (see --help)" >&2; exit 2; }
 AGENT_CONTINUE_CMD="${AGENT_CONTINUE_CMD:-$AGENT_CMD}"
 RESTART_DELAY="${RESTART_DELAY:-30}"
+STALL_DELAY="${STALL_DELAY:-120}"
+STALL_S=$(( STALL_MIN * 60 ))
+STALLS=0
 
 secs() { awk -v x="$1" -v m="$2" 'BEGIN { v = x * m; if (v < 1) v = 1; printf "%d", v }'; }
 TOTAL_S="$(secs "$HOURS" 3600)"
@@ -119,6 +131,7 @@ continue_prompt() {
 AGENT_PID=""
 AGENT_N=0
 AGENT_STARTED=0
+AGENT_LOG=""
 
 start_agent() {   # $1 = command, $2 = prompt
     local cmd="$1" prompt="$2" remaining=$(( DEADLINE - $(now) ))
@@ -129,6 +142,7 @@ start_agent() {   # $1 = command, $2 = prompt
     AGENT_N=$((AGENT_N + 1))
     AGENT_STARTED="$(now)"
     local alog; alog="$(printf '%s/agent-%03d.log' "$RUN_DIR" "$AGENT_N")"
+    AGENT_LOG="$alog"
     log "agent #$AGENT_N start (${remaining}s left) -> $(basename "$alog")"
     # Inside the container: write the prompt file, record our pid, then
     # exec into `timeout`, which kills the agent's whole process group at
@@ -146,6 +160,7 @@ start_agent() {   # $1 = command, $2 = prompt
 agent_running() { [ -n "$AGENT_PID" ] && kill -0 "$AGENT_PID" 2>/dev/null; }
 
 reap_agent() {
+    [ -n "$AGENT_PID" ] || return 0
     local rc=0
     wait "$AGENT_PID" || rc=$?
     log "agent #$AGENT_N exited rc=$rc after $(( $(now) - AGENT_STARTED ))s"
@@ -224,8 +239,8 @@ finish() {
         log "saved git history to $RUN_DIR/task.bundle"
     fi
     {
-        printf '{"run": "%s", "status": "%s", "hours": %s, "agent_invocations": %d, "commits": %d, "checkpoints": [' \
-            "$RUN" "$status" "$HOURS" "$AGENT_N" "$COMMITS"
+        printf '{"run": "%s", "status": "%s", "hours": %s, "agent_invocations": %d, "stall_restarts": %d, "commits": %d, "checkpoints": [' \
+            "$RUN" "$status" "$HOURS" "$AGENT_N" "$STALLS" "$COMMITS"
         local i sep=""
         for i in "${CHECKPOINTS[@]}"; do
             printf '%s%s' "$sep" "$(cat "$RUN_DIR/$i/checkpoint.json")"; sep=", "
@@ -257,6 +272,17 @@ while [ "$(now)" -lt "$DEADLINE" ]; do
             log "agent ran ${ran}s; waiting ${RESTART_DELAY}s before re-invoking"
             sleep "$RESTART_DELAY"
         fi
+        [ "$(now)" -lt "$((DEADLINE - 10))" ] || break
+        start_agent "$AGENT_CONTINUE_CMD" "$(continue_prompt)"
+    fi
+    # Stall watchdog: an agent alive but silent (e.g. stuck on a rate-limited
+    # request it never retries) is stopped and resumed after STALL_DELAY.
+    if [ "$STALL_S" -gt 0 ] && agent_running \
+        && [ $(( $(now) - $(stat -c %Y "$AGENT_LOG") )) -ge "$STALL_S" ]; then
+        log "agent #$AGENT_N silent for ${STALL_MIN}m; restarting it after ${STALL_DELAY}s"
+        stop_agent
+        STALLS=$((STALLS + 1))
+        sleep "$STALL_DELAY"
         [ "$(now)" -lt "$((DEADLINE - 10))" ] || break
         start_agent "$AGENT_CONTINUE_CMD" "$(continue_prompt)"
     fi
