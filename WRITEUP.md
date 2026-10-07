@@ -208,6 +208,7 @@ Two lessons about the harness, not the model:
 The benchmark runs end to end: one model has been through the full
 pipeline, from task container to published attempt. The open questions
 need stronger models and full-length runs:
+
 - **Difficulty.** An NES emulator is much smaller than a GBA emulator. If
   every frontier model reaches 0.95, the benchmark can't tell them apart,
   and the fix is harder tests or shorter runs.
