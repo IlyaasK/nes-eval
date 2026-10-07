@@ -14,6 +14,7 @@ a baseline emulator (`candidates/nes-core`).
 ## Quick start
 
 ```sh
+git lfs install                             # once per machine, if you haven't
 git clone --recurse-submodules https://github.com/IlyaasK/nes-eval && cd nes-eval
 git lfs pull                                # corpus/reference-cache/ (~70 MB)
 rustup toolchain install 1.96.0 --target wasm32-unknown-unknown   # pinned in rust-toolchain.toml
@@ -24,7 +25,9 @@ target/release/grader candidates/nes-core/nes_core.wasm corpus/ out/nes-core
 
 `scripts/build-wasm.sh` rebuilds the reference and the broken candidates;
 `target/release/grader --precompute corpus/` regenerates the reference
-cache (~30 s) if it is missing or stale. Docker users can skip the Rust
+cache (~30 s). Without LFS, the clone holds pointer files instead of
+caches; the grader detects that and rebuilds them on the first grade.
+Docker users can skip the Rust
 toolchain: `quickstart/grade.sh <candidate.wasm> <name>` grades in a
 container.
 
