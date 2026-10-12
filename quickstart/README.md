@@ -157,6 +157,14 @@ AGENT_CONTINUE_CMD='codex exec resume --last --dangerously-bypass-approvals-and-
 AGENT_CMD='~/.opencode/bin/opencode run -m opencode/space-bunny-free --variant medium --auto --format json' \
 AGENT_CONTINUE_CMD='~/.opencode/bin/opencode run --continue -m opencode/space-bunny-free --variant medium --auto --format json' \
   ./run-agent.sh --hours 2 --name space-bunny-run
+
+# omp (oh-my-pi), here with a custom OpenAI-compatible provider: copy the
+# omp binary into the container (`docker cp $(readlink -f $(command -v omp))
+# nes-eval-task:/usr/local/bin/omp`) and put the provider in the agent's
+# ~/.omp/agent/models.yml. web_search is left out: TASK.md forbids internet.
+OMP='omp -p --mode json --model hetzner/Qwen3.8-27B --smol hetzner/Qwen3.8-27B --slow hetzner/Qwen3.8-27B --plan hetzner/Qwen3.8-27B --thinking medium --auto-approve --no-lsp --no-title --tools read,bash,edit,eval,glob,grep,task,wait,todo,write'
+AGENT_CMD="$OMP" AGENT_CONTINUE_CMD="$OMP -c" \
+  ./run-agent.sh --hours 24 --name omp-qwen-run
 ```
 
 Options: `--hours H` (fractional allowed), `--name RUN`,
