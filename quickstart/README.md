@@ -29,6 +29,26 @@ WAVs, and `summary.json` with the overall score.
 - **Native (`grade.sh --native`)**: Rust (rust-toolchain.toml pins 1.96.0);
   uses `target/release/grader`, building it with cargo if missing.
 
+### If the agent CLI times out on its own API
+
+Some CLIs (codex) refresh model, plugin and workspace-routing data over
+several small HTTP calls before the first turn. On a host where Docker's
+bridge networking is slow or lossy for those (here: ~2.4 s added per
+request against 0.23 s from the host, with occasional stalls), they fail
+with errors like *"workspace routing discovery timed out"*. Use the
+host-network override, which puts both containers on the host's network
+namespace and moves the oracle onto the host's loopback:
+
+```bash
+export COMPOSE_FILE=docker-compose.yml:docker-compose.host-net.yml
+docker compose up -d --build
+export COMPOSE_FILE          # run-agent.sh inherits it for its execs
+```
+
+Trade-off: the container can reach anything on the host's loopback, so
+isolation is weaker than the default bridge. Prefer the default unless
+your agent CLI needs this.
+
 ## The environment
 
 `docker compose up -d --build` starts two containers:
