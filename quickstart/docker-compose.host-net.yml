@@ -1,0 +1,36 @@
+# Compose override for agents whose CLI makes many small HTTP calls.
+#
+# On this machine the task container's bridge networking adds about 2.4 s per
+# outbound request (2.67 s average to chatgpt.com's API, against 0.23 s from
+# the host) and occasionally stalls outright. Codex refreshes its model,
+# plugin and workspace-routing data over several such calls at startup, each
+# with retries, and fails: "workspace routing discovery timed out".
+#
+# With this override the task container shares the host's network namespace
+# instead of NAT, so its requests behave like the host's. The oracle sidecar
+# moves to the host's loopback: services publishes 8001 on 127.0.0.1 and the
+# task talks to it there.
+#
+# Use it with:
+#   export COMPOSE_FILE=docker-compose.yml:docker-compose.host-net.yml
+#   docker compose up -d
+# run-agent.sh inherits COMPOSE_FILE, so its execs and grading follow.
+#
+# Cost: the container can reach everything on the host's loopback, not just
+# the oracle, so it is weaker isolation than the default bridge. Prefer the
+# default unless your agent CLI needs it.
+services:
+  task:
+    network_mode: host
+    networks: !reset []
+    environment:
+      NES_SERVICES_URL: "http://127.0.0.1:8001"
+  # The oracle also joins the host namespace, so the task reaches it on the
+  # host's loopback. Publishing 8001 from the bridge network does not work
+  # here: the services container sits only on the internal `oracle` network,
+  # and Docker programs no port binding for it.
+  services:
+    network_mode: host
+    networks: !reset []
+    environment:
+      NES_ORACLE_BIND: "127.0.0.1"

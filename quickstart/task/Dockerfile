@@ -51,6 +51,12 @@ RUN set -eux; \
 RUN printf 'export PATH="/usr/local/cargo/bin:$PATH"\n' \
     > /etc/profile.d/rust.sh && chmod 0644 /etc/profile.d/rust.sh
 
+# umask 002, matching the services container: 0775 dirs and 0664 files, so
+# anything the agent creates under /task stays writable by the oracle
+# (uid 5000, group nes). Without this an agent that asks the oracle to dump
+# frames into a directory it just made gets EACCES from the oracle.
+RUN printf 'umask 002\n' > /etc/profile.d/umask.sh && chmod 0644 /etc/profile.d/umask.sh
+
 # Non-root user. The agent runs as `agent` (uid 1000). Shared group `nes`
 # (gid 3000) matches the services container so /task files stay mutually
 # readable+writable on the shared volume.

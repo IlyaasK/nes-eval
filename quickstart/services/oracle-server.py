@@ -45,7 +45,9 @@ import time
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-BIND = ("0.0.0.0", 8001)
+# Bind address and port. Defaults suit the bridge setup; a host-network
+# deployment sets NES_ORACLE_BIND=127.0.0.1 so the oracle stays off the LAN.
+BIND = (os.environ.get("NES_ORACLE_BIND", "0.0.0.0"), int(os.environ.get("NES_ORACLE_PORT", "8001")))
 ORACLE = "/usr/local/bin/oracle"
 TASK_ROOT = "/task"
 SESSION_ROOT = os.path.join(TASK_ROOT, ".oracle-sessions")
