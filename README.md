@@ -72,13 +72,20 @@ instruction in `TASK.md`, not something enforced.
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
 |---|---|---|---|---|---|---|---|
 | Space Bunny Free (medium thinking) | opencode 1.18.35 | 2 h | 0.0594 | 0.0000 | 0.0098 | 0.2673 | [repo](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free) |
+| Qwen3.8 27B (Hetzner, medium thinking) | omp 18.10.1 | 24 h | — never compiled — | | | | [repo](https://github.com/IlyaasK/nes-eval-attempt-qwen3.8-27b-omp) |
 
 Each attempt repository holds the model's working directory saved every 15
-minutes, the full transcript (`scripts/render-opencode-transcript.py`
-renders opencode sessions) and the graded checkpoints. The Space Bunny run
-wrote a 3,500-line emulator whose PPU draws every 8-pixel tile mirrored,
-and lost its last 25 minutes when OpenCode Zen's free tier rate-limited a
-request and opencode stalled without retrying.
+minutes, the full transcript (`scripts/render-opencode-transcript.py` for
+opencode, `scripts/render-omp-transcript.py` for omp) and the graded
+checkpoints. The Space Bunny run wrote a 3,500-line emulator whose PPU
+draws every 8-pixel tile mirrored, and lost its last 25 minutes when
+OpenCode Zen's free tier rate-limited a request and opencode stalled
+without retrying. The Qwen run wrote 2,677 lines over 24 hours but no
+saved commit ever compiled: for the first 8 hours its crate had no
+`src/lib.rs` at all, it came within 2 errors at hour 13:45, then
+regressed to 9 by the end. Both are recorded as ungraded or partial
+results rather than padded.
+
 
 **`nes-core`** ([`candidates/nes-core`](candidates/nes-core/README.md)) is
 the counterpart of GBA Eval's `gba-core` (which scores about 0.53 there):

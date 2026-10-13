@@ -18,9 +18,9 @@ graded frames):
 | Reference with three injected bugs | 0.1948 |
 | Blank screen | 0.0039 |
 | Space Bunny Free, 2 hours in opencode | 0.0594 |
+| Qwen3.8 27B, 24 hours in omp | never compiled |
 
-The one model result so far is a small, free model on a short run; the
-last section covers what it shows and what it doesn't.
+The two model results so far, and what they show, are at the end.
 
 ## 1. Emulators hand over palette numbers, not colours
 
@@ -194,8 +194,9 @@ Two lessons about the harness, not the model:
 - **A rate limit ended the run early.** At 1h34m the free tier rejected
   one request. opencode logged the error and then sat idle without
   retrying or exiting, so the supervisor, which restarts an agent only
-  when its process exits, never noticed. The supervisor should also
-  watch for silence.
+  when its process exits, never noticed. The supervisor now also watches
+  for silence: an agent whose output stops for 15 minutes is stopped and
+  resumed.
 - **The score is harsh on near-misses, by design.** Replay grading asks
   whether the emulator behaves identically, and a structural metric
   gives no credit for "the right tiles, flipped". That is the right call
@@ -203,15 +204,63 @@ Two lessons about the harness, not the model:
   bunch near zero; checkpoint scores (0.0578 at one hour) say little
   about how close a model is to a breakthrough.
 
+## The second model run: 24 hours, and nothing to grade
+
+The next attempt gave a model the full 24 hours: Qwen3.8 27B on Hetzner's
+free endpoint, driven by omp at medium thinking
+([attempt repository](https://github.com/IlyaasK/nes-eval-attempt-qwen3.8-27b-omp)).
+
+It produced no score, because the candidate never compiled. I rebuilt all
+43 saved commits afterwards; every one failed. That splits the run into
+three phases, and the first is the interesting one:
+
+- **Hours 0–8: nothing could be built at all.** The model wrote modules but
+  never created `src/lib.rs`, so cargo rejected the manifest: *"can't find
+  library `nes_emu`, rename file to `src/lib.rs`"*. For eight hours it was
+  reading the hardware docs, querying the oracle and writing code it had
+  no way to check.
+- **Hours 8–14: real compile errors and real progress** — 45 down to 2 by
+  hour 13:45, the closest it came.
+- **Hours 14–24: it regressed.** Back up to 36 errors by hour 17, 9 at the
+  end, with each large rewrite breaking names and types elsewhere.
+
+Over 24 hours it made 545 tool calls (304 reads, 76 edits, 41 writes, 75
+shell commands), burned 8.2M input and 1.5M output tokens against 27M
+cache reads, and compacted its own context 11 times. The run mechanics
+were perfect: one agent invocation, no crash, no stall, no rate limit, 42
+clean saves. The failure was engineering.
+
+Three things this run shows about the benchmark:
+
+- **The task's first gate is not emulation, it is building.** A model can
+  spend a whole day on a 2,700-line emulator and never once run `cargo
+  build`. A 24-hour NES Eval run measures whether a model establishes a
+  feedback loop at all, before it measures any emulation accuracy.
+- **Not compiling is a distinct outcome, and the harness says so plainly.**
+  The checkpoints record `build_rc=101` and no score, so this lands
+  outside the 0-to-1 scale instead of being scored as "very close to
+  zero". Anyone comparing models can see the difference between "wrote
+  something that runs but is wrong" (Space Bunny, 0.0594) and "never
+  produced a binary".
+- **Free-tier budget and time are not the same thing.** The earlier
+  Space Bunny run lost its last 25 minutes to a rate limit; this run had
+  no interruptions and still produced nothing gradeable. Both walls are
+  real, and they now have a watchdog and a clear ungraded state between
+  them.
+
+
 ## What's next
 
-The benchmark runs end to end: one model has been through the full
-pipeline, from task container to published attempt. The open questions
-need stronger models and full-length runs:
+The benchmark runs end to end: two models have been through the full
+pipeline, from task container to published attempt, and neither is close
+to a working emulator. That makes the open questions sharper:
 
-- **Difficulty.** An NES emulator is much smaller than a GBA emulator. If
-  every frontier model reaches 0.95, the benchmark can't tell them apart,
-  and the fix is harder tests or shorter runs.
+- **Difficulty at the bottom, not the top.** The concern was that models
+  would saturate near 0.95. So far the opposite: a small free model
+  scores 0.0594 and a 27B free model does not produce a binary in 24
+  hours. The next run should use a frontier model, where the question
+  becomes whether NES Eval has enough headroom between "compiles and
+  plays badly" and "plays exactly".
 - **Memorisation.** NES emulators are everywhere in training data. A high
   score might mean engineering, or recall. Comparing the same model on GBA
   Eval and NES Eval, and checking the code for copied structure, would
