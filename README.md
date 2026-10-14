@@ -71,12 +71,21 @@ instruction in `TASK.md`, not something enforced.
 
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
 |---|---|---|---|---|---|---|---|
+| GPT-6.1 Sol (high thinking) | codex 0.162.1 | 24 h | **0.9860** | 0.9300 | **1.0000** | **1.0000** | [repo](https://github.com/IlyaasK/nes-eval-attempt-gpt-6.1-sol) |
 | Space Bunny Free (medium thinking) | opencode 1.18.35 | 2 h | 0.0594 | 0.0000 | 0.0098 | 0.2673 | [repo](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free) |
 | Qwen3.8 27B (Hetzner, medium thinking) | omp 18.10.1 | 24 h | — never compiled — | | | | [repo](https://github.com/IlyaasK/nes-eval-attempt-qwen3.8-27b-omp) |
 
+**GPT-6.1 Sol** passed 28 of the 29 testcases at 0.999 or better and
+replayed all six homebrew games frame-exactly (34,000 frames, pixel for
+pixel). Its only failure is `nmi-and-brk`, blargg's NMI-hijacking-BRK test,
+which scores 0.0 and accounts for the whole 0.014 gap. It wrote 7,199 lines
+across CPU, PPU, APU and mappers 0–4, plus its own test harness and 44
+analysis tools.
+
 Each attempt repository holds the model's working directory saved every 15
 minutes, the full transcript (`scripts/render-opencode-transcript.py` for
-opencode, `scripts/render-omp-transcript.py` for omp) and the graded
+opencode, `render-omp-transcript.py` for omp, `render-codex-transcript.py`
+for codex) and the graded
 checkpoints. The Space Bunny run wrote a 3,500-line emulator whose PPU
 draws every 8-pixel tile mirrored, and lost its last 25 minutes when
 OpenCode Zen's free tier rate-limited a request and opencode stalled

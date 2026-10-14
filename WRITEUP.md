@@ -19,8 +19,9 @@ graded frames):
 | Blank screen | 0.0039 |
 | Space Bunny Free, 2 hours in opencode | 0.0594 |
 | Qwen3.8 27B, 24 hours in omp | never compiled |
+| GPT-6.1 Sol, 24 hours in codex at high thinking | 0.9860 |
 
-The two model results so far, and what they show, are at the end.
+The three model results, and what they show, are at the end.
 
 ## 1. Emulators hand over palette numbers, not colours
 
@@ -249,22 +250,65 @@ Three things this run shows about the benchmark:
   them.
 
 
+## The third model run: a frontier model, 0.9860
+
+GPT-6.1 Sol, running in codex at high thinking for the full 24 hours
+([attempt repository](https://github.com/IlyaasK/nes-eval-attempt-gpt-6.1-sol)):
+
+| Checkpoint | Overall | Procedural | Replay | Audio |
+|---|---|---|---|---|
+| 4 h | 0.9776 | 0.8901 | 1.0000 | 0.9980 |
+| 8 h | 0.9860 | 0.9300 | 1.0000 | 0.9999 |
+| 12 h, 16 h, 20 h, final | 0.9860 | 0.9300 | 1.0000 | 1.0000 |
+
+28 of the 29 testcases score at or above 0.999, and **all six homebrew
+games replay frame-exactly**: 34,000 frames of recorded gameplay, matching
+the reference pixel for pixel. Audio reaches exactness by hour 12. The
+single failure is `nmi-and-brk`, blargg's NMI-hijacking-BRK test, at 0.0,
+and it accounts for the entire remaining 0.014.
+
+Three things stand out.
+
+- **The wall is real, and it is one testcase wide.** Everything above
+  reflects full emulation of five mappers, dot-level PPU behaviour,
+  sprite evaluation, and a calibrated resampler, from scratch, in a day.
+  What is left is a single interrupt-timing corner case, which the model
+  was still working on when the clock ran out: its own `PROGRESS.md` ends
+  mid-investigation of a residual OAM row-corruption bug with the note
+  "Task not complete; keep improving."
+- **Tighter score bands than expected.** A free 27B model never compiled,
+  a free small model scored 0.0594 with mirrored tiles, and a frontier
+  model scored 0.9860. The gap between "an emulator that runs" and "an
+  emulator that is exact" is where this benchmark discriminates, and it
+  is wide.
+- **Replay grading is brutal but fair.** 34,000 frames of lockstep
+  comparison across six games is a much harder bar than any single test
+  ROM, and it was met exactly. That is the property GBA Eval's method
+  rests on, reproduced on the NES.
+
+The run itself needed harness work to get there, all of which is in this
+repository now: the container's bridge networking was slow and lossy
+enough that codex's startup calls timed out (a host-network override
+fixes it), the agent's shells needed `umask 002` so the oracle could write
+into directories the agent created, and codex's `COMPOSE_FILE` needed
+absolute paths. The watchdog also fired three times; each time codex
+resumed its session, and no committed work was lost.
+
 ## What's next
 
-The benchmark runs end to end: two models have been through the full
-pipeline, from task container to published attempt, and neither is close
-to a working emulator. That makes the open questions sharper:
+The benchmark runs end to end: three models have been through the full
+pipeline, from task container to published attempt, and they land 0.0594,
+ungraded (never compiled) and 0.9860. The open questions have changed
+shape:
 
-- **Difficulty at the bottom, not the top.** The concern was that models
-  would saturate near 0.95. So far the opposite: a small free model
-  scores 0.0594 and a 27B free model does not produce a binary in 24
-  hours. The next run should use a frontier model, where the question
-  becomes whether NES Eval has enough headroom between "compiles and
-  plays badly" and "plays exactly".
-- **Memorisation.** NES emulators are everywhere in training data. A high
-  score might mean engineering, or recall. Comparing the same model on GBA
-  Eval and NES Eval, and checking the code for copied structure, would
-  separate the two.
+- **Headroom.** The first frontier result leaves only 1.4% between it and
+  a perfect score, all of it one CPU-interrupt testcase. To tell strong
+  models apart, the corpus needs harder video and audio material, or
+  longer runs that force the last few percent.
+- **Memorisation.** NES emulators are everywhere in training data, and
+  blargg's test ROMs are famous, so a high score could reflect recall
+  rather than engineering. Comparing the same model on GBA Eval and NES
+  Eval, and checking the code for copied structure, would separate the two.
 - **Gaming.** GBA Eval saw a model try to game its grader. NES Eval's
   held-out games aren't visible to the agent, but the agent can query the
   reference as a black box for any ROM it has, which is worth watching.
