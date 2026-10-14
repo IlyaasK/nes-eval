@@ -28,6 +28,17 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$PWD"
 
+# See run-agent.sh: compose resolves COMPOSE_FILE entries against the current
+# directory, so make relative overrides absolute before any `docker compose`.
+if [ -n "${COMPOSE_FILE:-}" ]; then
+    parts=(); IFS=':' read -r -a entries <<< "$COMPOSE_FILE"
+    for e in "${entries[@]}"; do
+        case "$e" in /*) parts+=("$e") ;; *) parts+=("$REPO/quickstart/$e") ;; esac
+    done
+    COMPOSE_FILE="$(IFS=:; printf '%s' "${parts[*]}")"
+    export COMPOSE_FILE
+fi
+
 MODE="docker"
 FROM_CONTAINER=0
 REBUILD=0

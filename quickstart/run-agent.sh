@@ -55,6 +55,19 @@ cd "$(dirname "$0")/.."
 REPO="$PWD"
 QS="$REPO/quickstart"
 
+# docker compose resolves COMPOSE_FILE entries against the current directory,
+# not --project-directory, so a relative override like
+# `COMPOSE_FILE=docker-compose.yml:docker-compose.host-net.yml` breaks every
+# `dc` call below. Make them absolute up front.
+if [ -n "${COMPOSE_FILE:-}" ]; then
+    parts=(); IFS=':' read -r -a entries <<< "$COMPOSE_FILE"
+    for e in "${entries[@]}"; do
+        case "$e" in /*) parts+=("$e") ;; *) parts+=("$QS/$e") ;; esac
+    done
+    COMPOSE_FILE="$(IFS=:; printf '%s' "${parts[*]}")"
+    export COMPOSE_FILE
+fi
+
 HOURS=24
 RUN=""
 COMMIT_MIN=30
