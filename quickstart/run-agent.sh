@@ -117,6 +117,27 @@ log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" | tee -a "$LOG" >
 now() { date +%s; }
 fmt_elapsed() { local s=$(( $1 - START )); printf '%dh%02dm' $((s / 3600)) $(((s % 3600) / 60)); }
 
+# Seconds since the current agent log last grew.
+#
+# Never fails and always prints a number: the stall check runs in the same
+# instant `start_agent`'s background redirect creates the log, so `stat` can
+# miss it. An empty operand in `$(( ))` is not a soft error — it aborts the
+# enclosing `while` loop, which silently ended a 24h run early (2026-10-15,
+# deepseek-v4.1-flash-24h, 2h45m in). If the log is missing, fall back to the
+# invocation's start time, which is also the honest answer ("no growth seen
+# since it started").
+log_age() {
+    local m
+    if m=$(stat -c %Y "$AGENT_LOG" 2>/dev/null) && [ -n "$m" ]; then
+        printf '%s' "$(( $(now) - m ))"
+    else
+        printf '%s' "$(( $(now) - AGENT_STARTED ))"
+    fi
+}
+
+# True when less than 10s of the run remain.
+out_of_time() { [ "$(( DEADLINE - $(now) ))" -lt 10 ]; }
+
 dc ps --services --filter status=running 2>/dev/null | grep -qx task \
     || { echo "error: task container not running (cd quickstart && docker compose up -d)" >&2; exit 1; }
 dc ps --services --filter status=running 2>/dev/null | grep -qx services \
@@ -143,7 +164,7 @@ continue_prompt() {
 # ── Agent invocations ───────────────────────────────────────────────
 AGENT_PID=""
 AGENT_N=0
-AGENT_STARTED=0
+AGENT_STARTED="$(now)"
 AGENT_LOG=""
 
 start_agent() {   # $1 = command, $2 = prompt
@@ -285,18 +306,17 @@ while [ "$(now)" -lt "$DEADLINE" ]; do
             log "agent ran ${ran}s; waiting ${RESTART_DELAY}s before re-invoking"
             sleep "$RESTART_DELAY"
         fi
-        [ "$(now)" -lt "$((DEADLINE - 10))" ] || break
+        if out_of_time; then break; fi
         start_agent "$AGENT_CONTINUE_CMD" "$(continue_prompt)"
     fi
     # Stall watchdog: an agent alive but silent (e.g. stuck on a rate-limited
     # request it never retries) is stopped and resumed after STALL_DELAY.
-    if [ "$STALL_S" -gt 0 ] && agent_running \
-        && [ $(( $(now) - $(stat -c %Y "$AGENT_LOG") )) -ge "$STALL_S" ]; then
+    if [ "$STALL_S" -gt 0 ] && agent_running && [ "$(log_age)" -ge "$STALL_S" ]; then
         log "agent #$AGENT_N silent for ${STALL_MIN}m; restarting it after ${STALL_DELAY}s"
         stop_agent
         STALLS=$((STALLS + 1))
         sleep "$STALL_DELAY"
-        [ "$(now)" -lt "$((DEADLINE - 10))" ] || break
+        if out_of_time; then break; fi
         start_agent "$AGENT_CONTINUE_CMD" "$(continue_prompt)"
     fi
     if [ "$(now)" -ge "$NEXT_GRADE" ] && [ "$NEXT_GRADE" -lt "$DEADLINE" ]; then
@@ -312,4 +332,5 @@ while [ "$(now)" -lt "$DEADLINE" ]; do
 done
 
 trap - INT TERM
+log "main loop ended: $(fmt_elapsed "$(now)") elapsed of ${HOURS}h requested"
 finish completed
