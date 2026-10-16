@@ -66,15 +66,18 @@ The baseline emulator found two more gaps. `nes-core` scored 0 on two
 mapper tests because it gave cartridges exactly the PRG-RAM their NES 2.0
 header declares (none), while the reference always gives MMC1 and MMC3
 boards 8 KiB. It also diverged from every game within the first 16
-frames. A likely cause, not yet confirmed: RustyNES ignores PPU register
-writes for the first 29,658 CPU cycles after power-on (the NES's
-documented warm-up), and `nes-core` doesn't model that.
-Both are legitimate behaviours a reasonable emulator could get "wrong"
-relative to the reference, so both are now in the spec. I didn't change
-`nes-core` to match, because a baseline tuned against the corpus stops
-being a baseline. This is the main thing I learned from building it:
-**an underspecified ABI looks fine until an independent implementation
-hits it.**
+frames. I guessed the cause was the PPU warm-up: RustyNES ignores PPU
+register writes for the first 29,658 CPU cycles after power-on (the NES's
+documented warm-up), and `nes-core` doesn't model that. Both are
+legitimate behaviours a reasonable emulator could get "wrong" relative to
+the reference, so both are now in the spec. I didn't change `nes-core` to
+match, because a baseline tuned against the corpus stops being a baseline.
+
+The warm-up guess was wrong. The real cause was a third gap, which the
+DeepSeek run exposed: the reference's first `emu_run_frame` emulates
+nothing, and the ABI doesn't say so (see "Reference-fitting" below). This is
+the main thing I learned from building it: **an underspecified ABI looks
+fine until an independent implementation hits it.**
 
 ## 3. Only test ROMs the reference passes
 
@@ -161,17 +164,19 @@ reader knows what a mid-table number means. `nes-core` is the NES
 equivalent: written from the NESdev wiki without looking at any other
 emulator, graded once, untuned. It scores 0.58. It passes 19 of 23 test
 ROMs (procedural 0.83) but only 0.46 on replays, and the replay breakdown
-is the interesting part. In two games it stays frame-exact (0.997 and
-0.999). In the other four, a one-frame difference at boot means every
-recorded button press lands at a slightly different moment, and the
-playthrough diverges for good: 95 to 97% of frames differ.
+is the interesting part. In two games it stays close to the reference
+(0.997 and 0.999). In the other four, the baseline is one frame out of
+step from the first call onwards, so every recorded button press reaches
+the game at a different moment, and the playthrough diverges for good: 95
+to 97% of frames differ.
 
 That is what replay grading measures. It doesn't ask whether the
 emulator looks right; it asks whether it behaves identically, and small
-timing errors compound. It's also a warning about difficulty: the score
-is sensitive to exact timing, which is what keeps frontier models from
-all scoring 0.99, but it can also make the scores swing on a single
-boot-time detail.
+timing errors compound. It's also a warning: the score is sensitive to
+exact timing, which is what keeps frontier models from all scoring 0.99,
+but it can also make the scores swing on a single detail. Here the detail
+turned out not to be emulation at all but the first-call convention: with
+that one call skipped, the same untuned `nes-core` scores 0.9426.
 
 ## The first model run
 
@@ -262,11 +267,12 @@ GPT-6.1 Sol, running in codex at high thinking for the full 24 hours
 | 8 h | 0.9860 | 0.9300 | 1.0000 | 0.9999 |
 | 12 h, 16 h, 20 h, final | 0.9860 | 0.9300 | 1.0000 | 1.0000 |
 
-28 of the 29 testcases score at or above 0.999, and **all six homebrew
-games replay frame-exactly**: 34,000 frames of recorded gameplay, matching
-the reference pixel for pixel. Audio reaches exactness by hour 12. The
-single failure is `nmi-and-brk`, blargg's NMI-hijacking-BRK test, at 0.0,
-and it accounts for the entire remaining 0.014.
+28 of the 29 testcases score at or above 0.999. **Five of the six homebrew
+games replay identically to the reference**, every pixel of every frame; in
+the sixth, Falling, 4 of 5,800 frames differ slightly and the replay still
+scores 1.0000. Audio reaches exactness by hour 12. The single failure is
+`nmi-and-brk`, blargg's NMI-hijacking-BRK test, at 0.0, and it accounts for
+the entire remaining 0.014.
 
 Three things stand out.
 
@@ -284,8 +290,8 @@ Three things stand out.
   is wide.
 - **Replay grading is brutal but fair.** 34,000 frames of lockstep
   comparison across six games is a much harder bar than any single test
-  ROM, and it was met exactly. That is the property GBA Eval's method
-  rests on, reproduced on the NES.
+  ROM, and it was met all but exactly: 4 of those frames differ. That is
+  the property GBA Eval's method rests on, reproduced on the NES.
 
 The run itself needed harness work to get there, all of which is in this
 repository now: the container's bridge networking was slow and lossy
@@ -309,14 +315,13 @@ DeepSeek V4.1 Flash ran for 24 hours in omp at max thinking, via river.ai
 | 20 h | 0.9272 |
 | final (24 h) | **0.9272** |
 
-Its shape is the inverse of `nes-core`'s. Replay is its strongest section
-at 0.9955: four of the six homebrew games replay frame-exactly and the other
-two differ on a few thousand of 5,400 frames. What it fails instead is five
-test ROMs, all at zero — the four Holy Mapperel cartridge-board ROMs and
-blargg's official-opcode suite. A model that runs real games almost
-perfectly while getting instruction flags and board behaviour wrong is a
-different failure profile from one that does neither, and the sections
-separate them cleanly.
+Replay is its strongest section at 0.9955: four of the six homebrew games
+score 0.9998 or better and the other two, Nova the Squirrel and Thwaite, are
+near-misses at 0.9835 and 0.9894. What it fails instead is five test ROMs,
+all at zero — the four Holy Mapperel cartridge-board ROMs and blargg's
+official-opcode suite. A model that runs real games almost perfectly while
+getting instruction flags and board behaviour wrong is a different failure
+profile from one that does neither, and the sections separate them cleanly.
 
 It wrote 7,329 lines and, notably, 59 of its own tools: `compare.py`,
 `audiodiff.py`, `cpufuzz.py`, `asm6502.py`, `dis6502.py`, `attrprobe.py`, and
@@ -384,12 +389,23 @@ responsibility rather than the model's:
 - **My ABI made it necessary.** `spec/ABI.md` defines the frame boundary —
   `emu_run_frame` advances until the PPU leaves pre-render for scanline 0 —
   so a candidate *must* match the reference's convention to be scored
-  correctly. But I never stated what the reference does on the *first* call.
-  The model measured it with the oracle and complied. That is the right
-  engineering response to an underspecified interface, and it is the third
-  time this has bitten: `nes-core` found the same gap in power-on warm-up
-  and in MMC1/MMC3 PRG-RAM sizing. I documented those two in the ABI after
-  the fact; this one is still open.
+  correctly. But I never stated what the reference does on the *first* call:
+  in all 29 reference caches, frame 0 is an all-zero framebuffer with zero
+  audio samples, so the reference emulates nothing on that call, while the
+  ABI's wording implies a full frame. The model measured it with the oracle
+  and complied. That is the right engineering response to an underspecified
+  interface, and it is the third time this has bitten: `nes-core` found the
+  same kind of gap in MMC1/MMC3 PRG-RAM sizing and power-on warm-up. I
+  documented those two in the ABI after the fact; this one is still open.
+
+**My own baseline had the same bug.** `nes-core`'s replay losses match
+DeepSeek-with-the-flag-off almost exactly: the same games diverge on the
+same frames (Falling: 5,601 of 5,800 frames over the noise floor in both;
+240,509,695 against 240,509,701 differing pixels). Adding the same first-call
+skip to `nes-core`, one line, takes it from 0.5811 to **0.9426** (replay
+0.4569 to 0.9996). My earlier guess, the PPU warm-up, was wrong. A careful
+emulator written from the documentation scores 0.94 here; the published 0.58
+mostly measures whether you guessed one function call's convention.
 
 The lesson generalises beyond one constant. **When the score is defined as
 agreement with a reference implementation, every unstated convention is a

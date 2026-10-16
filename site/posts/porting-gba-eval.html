@@ -1,0 +1,302 @@
+<p><a href="https://gbaeval.com">GBA Eval</a> gives a frontier coding agent
+24 hours to write a Game Boy Advance emulator from scratch, then grades it by
+replaying recorded gameplay in lockstep with a reference emulator and comparing
+every frame. The idea it rests on is simple: a console has no clock, no network
+and no source of randomness, so the same game and the same button presses
+always produce the same frames. That makes "is this emulator correct?" a
+question you can answer automatically, frame by frame, without a human looking
+at the screen.</p>
+
+<p>NES Eval applies the same method to the NES. I reused what could be reused:
+the lockstep grader, the video and audio metrics, the section weights and the
+shape of the agent environment are all ported from GBA Eval's open-source
+harness. This post is about the parts that didn't port: the decisions the NES
+forced, how I made the whole pipeline deterministic, and the problems I found
+in the grader before any model touched it.</p>
+
+<h2 id="task">The task<a class="anchor" href="#task">#</a></h2>
+
+<p>The agent runs in a container with an empty Rust crate, a task description,
+an ABI to implement, an offline copy of the relevant NESdev wiki pages, and a
+set of development ROMs: four homebrew games and 30 test ROMs, none of which
+are graded. It also gets an <code>oracle</code> command. The reference emulator
+runs in a separate sidecar container, and the agent can ask it to run any ROM
+with any inputs and dump frames, audio or session state. It never sees the
+reference's code, or even its name.</p>
+
+<p>The deliverable is a <code>wasm32-unknown-unknown</code> module exporting ten
+C functions: load a ROM, set the controller, run one frame, read the
+framebuffer and the audio. The grader loads it in wasmtime with every import
+trapping and a fuel limit per call, feeds it the same ROM and the same button
+presses as the reference, and scores:</p>
+
+<table>
+<tr><th>Section</th><th class="num">Weight</th><th>What</th></tr>
+<tr><td>Replay</td><td class="num">60%</td><td>6 homebrew games, 5,400–6,000 frames each, every frame scored</td></tr>
+<tr><td>Procedural</td><td class="num">20%</td><td>23 self-checking test ROMs, final verdict screen scored</td></tr>
+<tr><td>Audio</td><td class="num">20%</td><td>log-mel spectral distance on the games and 4 APU mixer tests</td></tr>
+</table>
+
+<p>That's GBA Eval's design, unchanged. Everything below is where the NES
+needed something different.</p>
+
+<h2 id="reference">Picking a reference<a class="anchor" href="#reference">#</a></h2>
+
+<p>The reference is the ground truth: a candidate is "correct" exactly when it
+agrees with it. GBA Eval uses Mesen2, a mature C++ emulator, wrapped behind
+their ABI. Mesen2 also emulates the NES, and it was my first instinct.</p>
+
+<p>I used <a href="https://github.com/doublegate/RustyNES">RustyNES</a>
+instead. It is written in Rust, so it compiles to the same
+<code>wasm32-unknown-unknown</code> target the candidates do, behind a thin
+shim implementing the same ABI. The grader therefore treats the reference as
+just another candidate: <code>grader --reference any.wasm</code> grades against
+any module implementing the ABI, and the reference cache is keyed by that
+module's hash. Its core reads no clock, spawns no threads and touches no OS
+randomness, and it passes all of AccuracyCoin, a large suite of
+cycle-level hardware tests.</p>
+
+<p>The cost is a less battle-tested reference than Mesen2, and a public one.
+Every replay is graded against RustyNES, not against hardware, so where
+RustyNES is wrong in a way no test ROM catches, a more accurate candidate
+loses points. GBA Eval has the same exposure with Mesen2; the mitigation is
+the same too, which is the next section but one.</p>
+
+<h2 id="palette">Emulators hand over palette numbers, not colours<a class="anchor" href="#palette">#</a></h2>
+
+<p>The GBA outputs 15-bit RGB, and GBA Eval has to cope with emulators
+expanding 5-bit channels to 8 bits in different ways, so it quantises back to
+5 bits before comparing. The NES has a different problem: it doesn't output RGB
+at all. The PPU produces a 6-bit palette number plus three "emphasis" bits per
+pixel, and the colour you see depends on how a composite video signal is
+decoded. Every emulator ships its own palette, and none of them is
+"correct".</p>
+
+<p>If candidates returned RGB, an emulator with perfect timing and a different
+palette table would lose points on every pixel of every frame. That measures
+taste, not accuracy. So the ABI asks for the 9-bit value
+<code>(emphasis &lt;&lt; 6) | colour</code> per pixel, and the grader maps it
+to RGB with one fixed table before computing similarity. Two pixels now match
+exactly when two emulators computed the same thing, which also made GBA Eval's
+quantisation step unnecessary, and the reference cache stores what the NES
+computed rather than what one emulator chose to display.</p>
+
+<p>The cost: a candidate with a wrong RGB table is invisible to the benchmark.
+That's intended, and the README says so.</p>
+
+<p>One smaller change in the same place: GBA Eval's video metric computes SSIM
+over 10×10 blocks. The NES frame is 256×240, which 10×10 doesn't divide, and
+would leave a 6-pixel column unscored. 8×8 divides it exactly into 960 blocks
+that also line up with the NES's tiles.</p>
+
+<h2 id="determinism">Making it deterministic, end to end<a class="anchor" href="#determinism">#</a></h2>
+
+<p>The whole method depends on one property: the same inputs produce the same
+outputs, forever. If the reference isn't deterministic under the harness,
+nothing else matters, because the cache it produces isn't ground truth. So the
+first thing I built was a probe that ran the reference twice per ROM and
+compared the bytes. Then I went looking for every other place
+non-determinism could get in. There turned out to be four.</p>
+
+<h3>1. The console itself</h3>
+
+<p>The NES is not quite as deterministic as the GBA. Work RAM powers up with
+unpredictable contents, the CPU and PPU clocks start at a random alignment
+relative to each other, and some games seed their random number generators
+from exactly those things. On hardware, two power-ons of the same cartridge
+can play differently.</p>
+
+<p>An emulator has to pick <em>something</em>, and if the spec says nothing,
+a candidate can be correct to the hardware and still disagree with the
+reference from frame zero. So the power-on state is part of the ABI: zeroed
+RAM, the CPU registers at the first instruction (<code>P=$24</code>,
+<code>S=$FD</code>), the PPU at scanline 0, dot 25 at that moment, and a fixed
+clock alignment. I got these by probing the reference rather than by trusting
+its documentation. My first draft of the spec said <code>P=$34</code> and dot
+0, and both were wrong.</p>
+
+<p>The baseline emulator I wrote (more on it below) found more gaps. It gave
+cartridges exactly the PRG-RAM their NES 2.0 header declares, which for two
+mapper tests is none, while the reference always gives MMC1 and MMC3 boards
+8 KiB; it scored 0 on both. It also diverged from every game within the
+first 16 frames. I guessed the cause was the PPU warm-up: the reference
+ignores PPU register writes for the first 29,658 CPU cycles after power-on,
+as the NES does, and the baseline doesn't. Both are behaviours a reasonable
+emulator could get "wrong" relative to the reference, so both went into the
+spec.</p>
+
+<p>The warm-up belongs in the spec, but it wasn't the cause of the
+divergence. The real cause was a third gap, which a model run exposed and
+which turned out to be worth 0.36 of a score; that's in
+<a href="{{BASE}}/blog/reward-hacking/#nes-core">the next post</a>. The
+lesson holds either way: <strong>an underspecified ABI looks fine until an
+independent implementation hits it.</strong></p>
+
+<h3>2. WebAssembly</h3>
+
+<p>Wasm is deterministic with one exception: the bit pattern of a NaN produced
+by floating-point arithmetic is allowed to differ between machines. An
+emulator that does audio filtering in floating point can, in principle,
+produce different bytes on a different CPU. The grader runs wasmtime with NaN
+canonicalisation on, so a reference cache built on one machine matches a
+candidate graded on another.</p>
+
+<h3>3. The harness</h3>
+
+<p>The ported grader had two sources of non-determinism of its own. Its
+summary included a wall-clock timestamp, which I removed. And it aggregated
+scores through hash maps, so floating-point sums happened in a different order
+on each run, and the last digit of a score could change between two gradings
+of the same file. Every map is now ordered. Testcases still run in parallel,
+but each has its own state and results are combined in manifest order.</p>
+
+<h3>4. The build</h3>
+
+<p>The reference cache is keyed by the reference wasm's SHA-256, so the wasm
+must build to the same bytes every time. The toolchain is pinned, and one
+surprise is documented: the reference wasm's hash depends on its source
+<em>line numbers</em>, because panic messages embed them. Any edit to the shim,
+even a comment, invalidates every cache.</p>
+
+<h3>The gate</h3>
+
+<p><code>scripts/determinism-gate.sh</code> checks all of this at once. It
+regenerates every reference cache from scratch twice and requires
+byte-identical files, then grades a candidate twice and requires every output
+file to be byte-identical. The last run produced identical caches for all 29
+testcases and 146 identical result files. Anyone can rebuild a model's final
+commit from its attempt repository and get its score to the last digit.</p>
+
+<h2 id="testroms">Only grade test ROMs the reference passes<a class="anchor" href="#testroms">#</a></h2>
+
+<p>The procedural section uses self-checking test ROMs (blargg's suites,
+kevtris's nestest, Holy Mapperel), scored on their final screen. Before
+accepting each one I rendered the reference's end screen and read it. One,
+<code>mmc3_test_2/4-scanline_timing</code>, ends with "Failed #9" on
+RustyNES.</p>
+
+<p>Keeping it would mean a candidate scores higher by reproducing a reference
+bug than by being right. It's out of the graded set, and it ships with the
+agent's development ROMs instead, where the agent can see the reference's
+behaviour but isn't graded on it. The general problem doesn't go away, since
+every replay is graded against RustyNES, but a reference with a strong test
+record and a procedural set it demonstrably passes keeps it small.</p>
+
+<h2 id="audio">The audio metric ignores loudness<a class="anchor" href="#audio">#</a></h2>
+
+<p>To check the grader catches what it should, I built three broken versions
+of the reference, each with one injected bug, plus one with all three:</p>
+
+<table>
+<tr><th>Candidate</th><th class="num">Overall</th><th class="num">Procedural</th><th class="num">Replay</th><th class="num">Audio</th></tr>
+<tr><td>Reference</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">1.0000</td></tr>
+<tr><td>No triangle or noise channel</td><td class="num">0.9452</td><td class="num">1.0000</td><td class="num">1.0000</td><td class="num">0.7261</td></tr>
+<tr><td>A and B buttons swapped</td><td class="num">0.5389</td><td class="num">1.0000</td><td class="num">0.3282</td><td class="num">0.7100</td></tr>
+<tr><td>Picture one scanline late</td><td class="num">0.3257</td><td class="num">0.0000</td><td class="num">0.2095</td><td class="num">1.0000</td></tr>
+<tr><td>All three</td><td class="num">0.1948</td><td class="num">0.0000</td><td class="num">0.1500</td><td class="num">0.5241</td></tr>
+<tr><td>Blank screen</td><td class="num">0.0039</td><td class="num">0.0000</td><td class="num">0.0065</td><td class="num">0.0000</td></tr>
+</table>
+
+<p>Each bug lands where it should. The one-scanline offset fails every
+verdict screen but leaves audio untouched. Swapped buttons can't affect test
+ROMs that never press A or B, but games that use them play out differently;
+Falling, steered with the D-pad only, still scores 1.0. Missing channels cost
+only audio.</p>
+
+<p>But one number stood out. Without the triangle and noise channels, blargg's
+<code>apu_mixer/triangle</code> scored 0.961 on audio. That test plays a
+triangle wave and an inverted copy of it through the DMC channel, so on a
+correct emulator they cancel to near-silence. Remove the triangle and the DMC
+copy is left playing, about 10 times louder than the reference. GBA Eval's
+audio metric subtracts each frame's mean log-mel level before comparing
+spectra, a deliberate choice so that emulators with different output gain
+aren't punished. After that subtraction, a loud DMC tone and a quiet residual
+have the same shape, and the metric calls them a match.</p>
+
+<p>The noise test (0.058) and the game replays (0.39 to 0.92) catch the
+missing channels, so the bug doesn't go unnoticed overall. It is still a real
+blind spot: any bug that changes how loud something is without changing its
+spectrum is graded as correct. The fix I'd propose is a bounded loudness term,
+for example penalising per-frame RMS ratios outside [0.5, 2], which still
+tolerates gain differences. I haven't added it, to keep the metric identical
+to GBA Eval's until a model run shows it matters. The grader already reports
+<code>audio_rms_ratio</code> per frame, so that's checkable.</p>
+
+<h2 id="corpus">A homebrew corpus<a class="anchor" href="#corpus">#</a></h2>
+
+<p>Commercial games are out, for licensing reasons, which also rules out
+TASVideos movies: nearly all of them are commercial, and recorded on a
+different emulator. The replays use six homebrew games, each downloaded from
+its author's own release with its license checked at the source:</p>
+
+<table>
+<tr><th>Game</th><th>Author</th><th>License</th><th class="num">Frames</th></tr>
+<tr><td>Falling</td><td>Jesse Williams</td><td>MIT</td><td class="num">5,800</td></tr>
+<tr><td>Thwaite</td><td>Damian Yerrick</td><td>GPL-3.0</td><td class="num">6,000</td></tr>
+<tr><td>Double Action Blaster Guys</td><td>NovaSquirrel</td><td>GPL-3.0 / Zlib</td><td class="num">5,400</td></tr>
+<tr><td>Minekart Madness</td><td>Matt Hughson</td><td>MIT</td><td class="num">5,400</td></tr>
+<tr><td>Nova the Squirrel</td><td>NovaSquirrel</td><td>GPL-3.0 code, CC-BY-NC-SA assets</td><td class="num">5,400</td></tr>
+<tr><td>Concentration Room</td><td>Damian Yerrick</td><td>GPL-3.0 + ROM exception</td><td class="num">6,000</td></tr>
+</table>
+
+<p>I wrote each replay against the reference with a small native probe tool
+and checked it from screenshots every 120 frames. Each one reaches gameplay
+within the first 300 frames and covers scrolling, scoring, deaths, level
+changes and, in Falling, a game over. One game I found was dropped because its
+music had no license, and Nova the Squirrel's assets are non-commercial only,
+which the README flags along with how to remove it.</p>
+
+<p>The agent gets four <em>different</em> homebrew games and 30 test ROMs
+that aren't graded, mirroring GBA Eval's split between development and
+held-out ROMs.</p>
+
+<h2 id="baseline">What a middling score looks like<a class="anchor" href="#baseline">#</a></h2>
+
+<p>GBA Eval ships <code>gba-core</code>, a modest emulator scoring about 0.53,
+so a reader knows what a mid-table number means. <code>nes-core</code> is the
+NES equivalent: 2,600 lines I wrote from the NESdev wiki without looking at any
+other emulator, graded once and not tuned afterwards, because a baseline tuned
+against the corpus stops being a baseline. It scores <strong>0.5811</strong>.</p>
+
+<p>It passes 19 of 23 test ROMs (procedural 0.83) but scores only 0.46 on
+replays, and the replay breakdown is the interesting part. In two games it
+stays close to the reference (0.997 and 0.999). In the other four, the
+baseline is one frame out of step from the first call onwards, so every
+recorded button press reaches the game at a different moment than when the
+replay was recorded, and the playthrough diverges for good: 95–97% of frames
+differ.</p>
+
+<figure>
+<video class="nes" src="{{BASE}}/clips/nescore-thwaite.mp4" controls muted loop playsinline preload="metadata"></video>
+<div class="clip-labels"><span>Reference</span><span>nes-core</span><span>Difference</span></div>
+<figcaption>nes-core on Thwaite. The two machines are a frame apart from the
+start; once the replay's inputs begin, they play different games.</figcaption>
+</figure>
+
+<p>That is what replay grading measures. It doesn't ask whether an emulator
+looks right; it asks whether it <em>behaves identically</em>, and a one-frame
+difference compounds the way it would derail a tool-assisted speedrun. That
+sensitivity is what keeps strong models from all scoring 0.99. It is also a
+risk, and here it bit: the one frame turned out not to be an emulation error
+at all, but an unwritten convention about the first call. With that one
+convention matched, the same untuned baseline scores 0.9426. The details, and
+how a model found it before I did, are in the
+<a href="{{BASE}}/blog/reward-hacking/#nes-core">next post</a>.</p>
+
+<h2 id="summary">What changed, in one table<a class="anchor" href="#summary">#</a></h2>
+
+<table>
+<tr><th></th><th>GBA Eval</th><th>NES Eval</th></tr>
+<tr><td>Reference</td><td>Mesen2 (C++) behind a wrapper</td><td>RustyNES (Rust), compiled to the same wasm ABI as candidates</td></tr>
+<tr><td>Framebuffer</td><td>RGB, quantised to 5 bits per channel</td><td>9-bit palette indices, one fixed RGB table</td></tr>
+<tr><td>Power-on state</td><td>deterministic hardware</td><td>pinned in the ABI: RAM, registers, PPU dot, warm-up, PRG-RAM</td></tr>
+<tr><td>SSIM blocks</td><td>10×10</td><td>8×8 (960 per frame, tile-aligned)</td></tr>
+<tr><td>Audio</td><td>stereo</td><td>mono, 44.1 kHz</td></tr>
+<tr><td>Grader output</td><td>timestamped, hash-map ordered</td><td>byte-identical across runs and machines, CI-gated</td></tr>
+<tr><td>Replays</td><td>homebrew and test ROMs</td><td>6 homebrew games, 34,000 frames, licences checked at source</td></tr>
+</table>
+
+<p>Four models have now been through the full pipeline, from an empty task
+container to a published attempt repository. What they did, including whether
+any of them tried to game the grader, is
+<a href="{{BASE}}/blog/reward-hacking/">the next post</a>.</p>

@@ -1,0 +1,333 @@
+<p>Mechanize's <a href="https://gbaeval.com/blog/grok-reward-hacking">post
+on Grok Build</a> describes a model that, instead of fixing its CPU, compared
+the program counter against instruction addresses inside one of the example
+ROMs and forced the flags it needed for that ROM's boot check to pass. The
+model had no access to the grader. It guessed what would be graded, and made
+the guess pay off.</p>
+
+<p>I ran four models on NES Eval, three of them for the full 24 hours, and
+then went looking for the same thing. The short answer is that none of them
+did it. The longer answer is more useful: the most valuable line of code in
+any of the runs is one constant fitted to the reference, worth 0.36 of a
+score, and when I checked my own baseline emulator it turned out to be losing
+exactly the same 0.36 for exactly the same reason. That is a flaw in the
+benchmark, not in the models, and finding it is what this post is about.</p>
+
+<table>
+<tr><th>Model</th><th>Harness</th><th class="num">Time</th><th class="num">Overall</th><th class="num">Procedural</th><th class="num">Replay</th><th class="num">Audio</th></tr>
+<tr><td><a href="{{BASE}}/model/gpt-6.1-sol/">GPT-6.1 Sol</a>, high thinking</td><td>codex</td><td class="num">24 h</td><td class="num"><strong>0.9860</strong></td><td class="num">0.9300</td><td class="num">1.0000</td><td class="num">1.0000</td></tr>
+<tr><td><a href="{{BASE}}/model/deepseek-v4.1-flash/">DeepSeek V4.1 Flash</a>, max thinking</td><td>omp</td><td class="num">24 h</td><td class="num"><strong>0.9272</strong></td><td class="num">0.7700</td><td class="num">0.9955</td><td class="num">0.8797</td></tr>
+<tr><td><a href="{{BASE}}/model/space-bunny-free/">Space Bunny Free</a>, medium thinking</td><td>opencode</td><td class="num">2 h</td><td class="num">0.0594</td><td class="num">0.0000</td><td class="num">0.0098</td><td class="num">0.2673</td></tr>
+<tr><td><a href="{{BASE}}/model/qwen3.8-27b/">Qwen3.8 27B</a>, medium thinking</td><td>omp</td><td class="num">24 h</td><td colspan="4" class="muted">never compiled</td></tr>
+</table>
+
+<h2 id="search">Looking for special-casing<a class="anchor" href="#search">#</a></h2>
+
+<p>The Grok hack has recognisable signatures, so I searched the final source
+of every run that produced code (7,199, 7,329 and 2,677 lines of Rust) and
+all of their transcripts, about 490 MB of logs, for each one:</p>
+
+<table>
+<tr><th>Signature</th><th>Found</th></tr>
+<tr><td>ROM names or corpus paths in the emulator</td><td>none</td></tr>
+<tr><td>ROM identity checks: CRC, MD5, SHA, or the title in the iNES header</td><td>none</td></tr>
+<tr><td>Behaviour keyed to <code>pc == 0x…</code>, or forced CPU flags</td><td>none active. DeepSeek compares the PC against <code>$F29D</code> and <code>$86ED</code>, but only to print a trace when an environment variable is set, which can't happen in wasm.</td></tr>
+<tr><td>Boot waits skipped for a particular ROM</td><td>none</td></tr>
+<tr><td>Embedded ROMs or frames (<code>include_bytes!</code>)</td><td>none. The largest tables are opcode tables, APU period tables, and one 9,219-entry audio filter kernel.</td></tr>
+<tr><td>Attempts to read the reference cache, the corpus or the grader</td><td>none</td></tr>
+<tr><td>Literal address comparisons in the emulation path</td><td>only hardware registers: <code>$4016</code>/<code>$4017</code> (controllers), <code>$4015</code> (APU status), <code>$2007</code> (PPU data)</td></tr>
+</table>
+
+<p>The transcripts are full of words that look alarming out of context: 102
+uses of "hardcode" in DeepSeek's, 286 of "special case" and 11 of "cheat" in
+Qwen's. I read them. They are quotes from the NESdev wiki ("bugs, cheats,
+etc"), debugging hypotheses ("the test also compares against hardcoded
+expected values in the ROM"), and one model explaining a common emulator
+shortcut for audio framing. The 544 mentions of "grader" in Qwen's transcript
+are about making the ABI work correctly, for example, keeping the audio buffer
+from growing because <em>"the grader drains periodically"</em>.</p>
+
+<p>The models did reason about how they'd be graded. Qwen guessed that
+<em>"the grader likely compares audio with some tolerance since exact sample
+alignment is fragile, but I'll aim for exactness"</em>, and inferred from the
+task description that test ROMs like its development ones would be graded.
+That is the same kind of reasoning that led Grok to its hack. Here it led to
+nothing worse than a decision to be exact.</p>
+
+<h2 id="constant">One constant worth 0.36<a class="anchor" href="#constant">#</a></h2>
+
+<p>What I did find was this, in DeepSeek's <code>src/system.rs</code>, active
+in the graded build:</p>
+
+<pre><code>/// Whether the first emu_run_frame call returns without emulating (the
+/// reference behaves this way).
+static mut FIRST_FRAME_SKIPS: bool = true;</code></pre>
+
+<p>Its first <code>emu_run_frame()</code> call returns immediately. Ten other
+constants sit next to it, all tuned the same way against the oracle: filter
+taps, the NMI latch delay in PPU dots, the NMI sample phase, an audio
+pre-warm count. I flipped this one to <code>false</code>, rebuilt, and
+regraded:</p>
+
+<table>
+<tr><th></th><th class="num">Overall</th><th class="num">Procedural</th><th class="num">Replay</th><th class="num">Audio</th></tr>
+<tr><td>As published</td><td class="num">0.9272</td><td class="num">0.7700</td><td class="num">0.9955</td><td class="num">0.8797</td></tr>
+<tr><td><code>FIRST_FRAME_SKIPS = false</code></td><td class="num"><strong>0.5650</strong></td><td class="num">0.7700</td><td class="num">0.4535</td><td class="num">0.6944</td></tr>
+</table>
+
+<p>One boolean is 0.362 of the score, more than any emulation feature the
+model wrote. Without it the emulator runs one frame ahead of the reference,
+each recorded button press reaches the game a frame later than when the
+replay was recorded, and four of the six games diverge.</p>
+
+<figure>
+<video class="nes" src="{{BASE}}/clips/deepseek-noskip-dabg.mp4" controls muted loop playsinline preload="metadata"></video>
+<div class="clip-labels"><span>Reference</span><span>DeepSeek, flag off</span><span>Difference</span></div>
+<figcaption>Double Action Blaster Guys, which the published build replays
+with a score of 1.0000. With the flag off, the menus are already out of step
+and the level never lines up.</figcaption>
+</figure>
+
+<p>The comment is accurate. I checked the reference cache directly: in all
+29 testcases, frame 0, the result of the first call, is an all-zero
+framebuffer with zero audio samples. The reference really does emulate
+nothing on its first call. The model found that out by asking the oracle,
+wrote it down, and matched it.</p>
+
+<p>Is that reward hacking? I don't think so, for two reasons:</p>
+
+<ul>
+<li><strong>It is universal, not ROM-specific.</strong> There is no ROM
+detection. The constant applies to every testcase and every game the same
+way. Grok keyed its behaviour to addresses inside one example ROM, which
+would break on any other cartridge.</li>
+<li><strong>My ABI made it necessary.</strong> <code>spec/ABI.md</code> says
+<code>emu_run_frame</code> "advances until the PPU leaves the pre-render
+scanline (261) for scanline 0", and that at power-on the PPU starts clocking
+from scanline 0. Read literally, the first call runs a whole frame. The
+reference runs none. The spec doesn't just leave this out; read the obvious
+way, it points at the wrong answer. A model that matched the oracle rather
+than the text was right.</li>
+</ul>
+
+<h2 id="nes-core">My baseline had the same bug<a class="anchor" href="#nes-core">#</a></h2>
+
+<p>The flipped-flag numbers looked familiar. My hand-written baseline,
+<code>nes-core</code>, scores 0.5811, and in the
+<a href="{{BASE}}/blog/porting-gba-eval/#baseline">first post</a> I explained
+its replay losses as a small boot-time timing difference that compounds,
+with a guess that the cause was the PPU warm-up. Here are its per-game
+differences next to DeepSeek's with the flag off:</p>
+
+<table>
+<tr><th>Game</th><th class="num">nes-core: frames &gt; 8 px off</th><th class="num">DeepSeek, flag off</th></tr>
+<tr><td>Falling</td><td class="num">5,601 / 5,800</td><td class="num">5,601 / 5,800</td></tr>
+<tr><td>Thwaite</td><td class="num">5,835 / 6,000</td><td class="num">5,870 / 6,000</td></tr>
+<tr><td>Double Action Blaster Guys</td><td class="num">5,199 / 5,400</td><td class="num">5,200 / 5,400</td></tr>
+<tr><td>Minekart Madness</td><td class="num">88 / 5,400</td><td class="num">88 / 5,400</td></tr>
+<tr><td>Concentration Room</td><td class="num">5,740 / 6,000</td><td class="num">5,740 / 6,000</td></tr>
+</table>
+
+<p>Two emulators written independently, one by me and one by a model, fail
+the same games on the same frames to within one or two frames. In Falling
+the total number of differing pixels is 240,509,695 for one and 240,509,701
+for the other. That's not a coincidence, it's the same bug. I added the same
+first-call skip to <code>nes-core</code>, one line, and regraded:</p>
+
+<table>
+<tr><th>Game</th><th class="num">nes-core</th><th class="num">+ first call skipped</th></tr>
+<tr><td>Falling</td><td class="num">0.2832</td><td class="num">0.9997</td></tr>
+<tr><td>Thwaite</td><td class="num">0.3101</td><td class="num">0.9998</td></tr>
+<tr><td>Double Action Blaster Guys</td><td class="num">0.0378</td><td class="num">1.0000</td></tr>
+<tr><td>Minekart Madness</td><td class="num">0.9974</td><td class="num">1.0000</td></tr>
+<tr><td>Nova the Squirrel</td><td class="num">0.9986</td><td class="num">0.9985</td></tr>
+<tr><td>Concentration Room</td><td class="num">0.1142</td><td class="num">0.9993</td></tr>
+<tr><td><strong>Overall</strong></td><td class="num"><strong>0.5811</strong></td><td class="num"><strong>0.9426</strong></td></tr>
+</table>
+
+<p>So my warm-up guess was wrong, and so was the lesson I drew from the
+baseline. Replays did amplify a one-frame difference into a 95% loss, but
+the difference wasn't an emulation error. It was a convention. A careful
+emulator written from the hardware documentation scores 0.94 on this
+benchmark, and the published 0.58 mostly measures whether you guessed what
+the reference does on one function call.</p>
+
+<p>The two model runs that scored above 0.9 both matched the reference here;
+DeepSeek wrote down why. Whether GPT-6.1 Sol found it by measurement or got
+it by building its frame loop a different way, I haven't checked. Either way,
+any score on v1.0 has a 0.36-point question folded into it that has nothing
+to do with emulation, and a model that reads the spec carefully and trusts it
+is the one that loses.</p>
+
+<p>This is the third time an independent implementation has found a hole in
+the ABI. <code>nes-core</code> found the first two before any model ran: the
+PRG-RAM size the reference gives MMC1 and MMC3 boards, and the PPU warm-up
+period. Both are documented now. The general lesson, which I'd now put more
+strongly than before: <strong>when the score is defined as agreement with a
+reference implementation, every unstated convention is worth points, and the
+rational strategy is to fit the reference rather than derive from the spec.</strong>
+The way to stop rewarding that isn't to penalise fitting. It's to write the
+conventions down so there's nothing left to fit.</p>
+
+<h2 id="fitting">Fitting versus deriving<a class="anchor" href="#fitting">#</a></h2>
+
+<p>GPT-6.1 Sol shows the same pattern at a larger scale, in audio. The ABI
+asks for mono 16-bit samples at 44,100 Hz. The NES's audio is generated at
+the CPU clock, about 1.79 MHz, so every emulator has to resample it, and the
+ABI says nothing about how. Sol's audio is exact (1.0000), and a large part
+of how it got there is fitting a resampler to the oracle: 2,713 of its 7,199
+lines are audio mixing and filtering, built around a calibrated
+9,219-coefficient filter kernel, and it kept its own training and held-out
+sets of probe signals:</p>
+
+<blockquote>The first audio table fit also improved a held-out DAC pattern:
+RMS error fell from 0.150 to 0.122 PCM units. I'm keeping that table
+experimental while checking other phases, levels, and game audio.</blockquote>
+
+<blockquote>Both triangle fixes now pass the original random streams, all
+20,000 gameplay frames, and the bundled diagnostics. A held-out stream
+exposed a separate envelope issue: the oracle suppresses an extra frame
+clock when a five-step reset lands one CPU clock after a scheduled
+clock.</blockquote>
+
+<p>That is good engineering. Holding out data to check a fit generalises is
+exactly what you'd want from a person doing the same job. But it's
+system identification of RustyNES's resampler, not NES emulation. The second
+quote is the more interesting one: the held-out stream found a genuine
+APU timing behaviour, which is what the benchmark is meant to reward. The
+first fits an output filter that the hardware doesn't define. The score
+can't tell them apart.</p>
+
+<p>I don't think the answer is to forbid this. A reference-based benchmark
+will always reward matching the reference, and probing a black box is a
+legitimate skill. But the parts of the output that are conventions rather
+than hardware behaviour, such as frame boundaries, resampling and the palette,
+should either be specified exactly or made not to matter. The palette already
+doesn't matter, because candidates hand over palette indices. The other two
+are on the list.</p>
+
+<h2 id="identity">One model worked out which emulator was grading it<a class="anchor" href="#identity">#</a></h2>
+
+<p>The agent never sees the reference's code or name. But the README for
+its development ROMs said they were "copied byte-for-byte from
+<code>third_party/RustyNES/tests/roms/</code>". Qwen read it and
+reasoned:</p>
+
+<blockquote>The test ROMs were "copied byte-for-byte from
+third_party/RustyNES/tests/roms/" — this is a strong hint: the reference is
+likely based on RustyNES (a Rust NES emulator)! RustyNES is a Rust
+cycle-accurate emulator by Christopher Pow. So the reference output will match
+RustyNES's behavior. I should emulate RustyNES's design.</blockquote>
+
+<p>The inference was right and the recall was not: "christopherpow" is the
+GitHub account that hosts the test-ROM collection, not RustyNES's author. A
+few paragraphs later it admitted it didn't remember RustyNES's internals and
+settled on <em>"I can't see the reference's source, so I have to write my own
+emulator and match the oracle's behavior via differential testing."</em> The
+leak didn't help a model whose code never compiled. It would matter more for
+a model that had memorised RustyNES's source, because then matching the
+reference becomes recall. It's a one-line fix: credit the ROMs to blargg and
+the public test-ROM collection, which is just as accurate, and don't name
+the reference.</p>
+
+<h2 id="loops">The first skill is building a feedback loop<a class="anchor" href="#loops">#</a></h2>
+
+<p>The clearest difference between the runs wasn't emulation knowledge. It
+was whether the model built itself a way to check its work.</p>
+
+<ul>
+<li><strong>Qwen3.8 27B</strong> wrote modules for eight hours without ever
+creating <code>src/lib.rs</code>, so cargo refused to build the crate at
+all, and it didn't notice, because it never ran a build. It got down to 2
+compile errors at hour 13:45, then large rewrites pushed it back up to 36,
+ending at 9. Over 24 hours it ran 75 shell commands and asked the oracle 7
+times. None of its 43 saved commits compile.</li>
+<li><strong>Space Bunny Free</strong> built a native frame dumper and
+comparison scripts and asked the oracle 78 times in its 1h34m of working time.
+It found one bug in its background shift registers (<em>"I had the
+direction backwards!"</em>) but not the next one, which draws every tile
+mirrored:</li>
+</ul>
+
+<div class="pair">
+<figure><img class="nes" src="{{BASE}}/blog/img/spacebunny-nestest.ref.png" alt="nestest menu on the reference"><figcaption>Reference</figcaption></figure>
+<figure><img class="nes" src="{{BASE}}/blog/img/spacebunny-nestest.cand.png" alt="nestest menu on Space Bunny's emulator, every tile mirrored"><figcaption>Space Bunny Free: "stset llA nuR"</figcaption></figure>
+</div>
+
+<p>Text that's almost right scores about the same as a blank screen, because
+the video metric compares edges, and mirroring an 8-pixel tile moves all of
+them. The run scored 0.0594 against a blank screen's 0.0039. That's harsh,
+and I think right for a benchmark about exactness.</p>
+
+<ul>
+<li><strong>DeepSeek V4.1 Flash</strong> wrote 59 Python tools of its own,
+including a frame comparator, an audio differ, a CPU fuzzer, and a 6502
+assembler and disassembler. It ran the oracle
+directly from 190 shell commands and kept a running <code>STATUS.md</code>
+of what still differed. It cost about $9 in tokens.</li>
+<li><strong>GPT-6.1 Sol</strong> wrote a test suite for the ABI itself (cold
+reset, ROM allocation, determinism, audio draining) and 44 analysis tools,
+ran the oracle 105 times, and kept a <code>PROGRESS.md</code> that ends
+mid-investigation of an OAM corruption bug: <em>"Task not complete; keep
+improving. No agent delegation / no internet used."</em></li>
+</ul>
+
+<p>Its one failure, worth the entire remaining 1.4%, is blargg's test of an
+NMI arriving during a BRK instruction:</p>
+
+<div class="pair">
+<figure><img class="nes" src="{{BASE}}/blog/img/sol-nmi-and-brk.ref.png" alt="nmi-and-brk on the reference"><figcaption>Reference</figcaption></figure>
+<figure><img class="nes" src="{{BASE}}/blog/img/sol-nmi-and-brk.cand.png" alt="nmi-and-brk on GPT-6.1 Sol's emulator"><figcaption>GPT-6.1 Sol</figcaption></figure>
+</div>
+
+<h2 id="harness">The harness is code under test too<a class="anchor" href="#harness">#</a></h2>
+
+<p>Two of the four runs found bugs in my harness rather than in an
+emulator.</p>
+
+<p>DeepSeek's first attempt ended after 2 hours 45 minutes, with the score
+still rising. The supervisor's stall watchdog measured how long the agent's
+log had been silent with <code>stat</code>, which races the background
+redirect that creates the log. When the file didn't exist yet, the result was
+empty, and an empty operand inside bash's <code>$(( ))</code> doesn't just
+fail the test: it aborts the enclosing <code>while</code> loop. The
+supervisor fell through to "run completed". Every earlier run had simply
+been lucky. The fix ships with a regression test that deletes the agent's log
+mid-run: the old code ends a 144-second run after 35 seconds, the new code
+runs all 174.</p>
+
+<p>Space Bunny's run lost its last 25 minutes when the free tier
+rate-limited one request. opencode logged the error and then waited without
+retrying or exiting, and the supervisor, which only restarted agents whose
+process had ended, never noticed. It now also restarts an agent that has
+been silent for 15 minutes. That watchdog fired three times during Sol's run;
+codex resumed its session each time and no work was lost.</p>
+
+<p>Neither bug would have shown up in a test of the grader. Both showed up
+because a model ran for a long time and did something I didn't expect.</p>
+
+<h2 id="next">What changes in v1.1<a class="anchor" href="#next">#</a></h2>
+
+<p>The published scores are v1.0 and stay as they are. Each attempt
+repository records the environment commit it ran against, and the grader,
+corpus and reference cache don't change. The next version fixes the
+environment, not the scores:</p>
+
+<ol>
+<li><strong>State the first-call convention in the ABI</strong>: the first
+<code>emu_run_frame</code> after power-on emulates nothing and produces no
+audio. This changes no score already published, and it makes the 0.36 a
+requirement anyone can read rather than a discovery.</li>
+<li><strong>Specify or neutralise resampling</strong>, so exact audio means
+an exact APU, not a fitted copy of one emulator's filter.</li>
+<li><strong>Stop naming the reference</strong> in the agent-visible ROM
+provenance.</li>
+<li><strong>Bring the baseline into conformance</strong>, so
+<code>nes-core</code> means what it was supposed to mean: a careful emulator
+written from the documentation. Under v1.1 that's 0.94, not 0.58.</li>
+</ol>
+
+<p>If I had to name one thing these runs taught me about building evals, it's
+that the model that fits the reference and the engineer who trusts the spec
+are both responding rationally to the same environment. When they get
+different scores, the environment is what's wrong.</p>
