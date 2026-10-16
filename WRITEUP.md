@@ -341,6 +341,73 @@ test too. Only the fact that the model's score kept climbing across
 checkpoints (0.5564 → 0.9272) made it obvious that the early "completion" was
 not the model quitting.
 
+## Reference-fitting: one constant worth 0.36
+
+GBA Eval has a post about Grok special-casing a specific example ROM's
+instruction addresses to force its boot check to pass. I looked for that in
+all four runs by grepping their final sources and transcripts — ROM names,
+hashes, CRC or title matching, `pc == 0x…` behaviour changes, forced flags,
+baked frames — and found none of it. The literal address comparisons in all
+three emulators are hardware registers: `$4016`/`$4017`, `$4015`, `$2007`.
+
+What I did find is a milder thing, and it is worth publishing because of how
+much it is worth. DeepSeek's `src/system.rs` contains:
+
+```rust
+/// Whether the first emu_run_frame call returns without emulating (the
+/// reference behaves this way).
+static mut FIRST_FRAME_SKIPS: bool = true;
+```
+
+Its first `emu_run_frame()` returns without emulating, in the graded build.
+Eleven constants sit alongside it — FIR taps, NMI latch dots, NMI sample
+phase, audio prewarm — all tuned the same way. I flipped that one flag and
+regraded:
+
+| | Overall | Procedural | Replay | Audio |
+|---|---|---|---|---|
+| as published | 0.9272 | 0.7700 | 0.9955 | 0.8797 |
+| `FIRST_FRAME_SKIPS = false` | **0.5650** | 0.7700 | 0.4535 | 0.6944 |
+
+A single reference-shaped constant is 0.362 of that model's score — more
+than any actual emulation feature it wrote. GPT-6.1 Sol did the same species
+of thing in audio: it fitted its resampler and DAC tables against the
+oracle's output, reporting the RMS improvements, with its own train and
+held-out splits of probe data.
+
+Two things make this different from Grok's hack, and both are my
+responsibility rather than the model's:
+
+- **It is universal, not ROM-specific.** No ROM detection is involved; the
+  constant applies to every testcase equally. Grok keyed behaviour to
+  program-counter addresses inside one example ROM.
+- **My ABI made it necessary.** `spec/ABI.md` defines the frame boundary —
+  `emu_run_frame` advances until the PPU leaves pre-render for scanline 0 —
+  so a candidate *must* match the reference's convention to be scored
+  correctly. But I never stated what the reference does on the *first* call.
+  The model measured it with the oracle and complied. That is the right
+  engineering response to an underspecified interface, and it is the third
+  time this has bitten: `nes-core` found the same gap in power-on warm-up
+  and in MMC1/MMC3 PRG-RAM sizing. I documented those two in the ABI after
+  the fact; this one is still open.
+
+The lesson generalises beyond one constant. **When the score is defined as
+agreement with a reference implementation, every unstated convention is a
+hidden lottery worth points, and the rational strategy is to fit rather than
+derive.** Two fixes, both for a v1.1 environment rather than a rerun of the
+published v1.0 results:
+
+1. Probe the reference's first-call and frame-alignment behaviour and write
+   it into the ABI, so compliance is a documented requirement instead of a
+   discovery.
+2. Stop leaking the reference's identity. `corpus/roms/dev/README.md` and
+   `test/LICENSE.txt` say the practice ROMs were "copied byte-for-byte from
+   `third_party/RustyNES/tests/roms/`", naming the reference emulator and its
+   commit. Qwen3.8 reasoned straight from it: *"this is a strong hint: the
+   reference is likely based on RustyNES"*. Attribution to blargg and
+   `christopherpow/nes-test-roms` gives the same provenance without turning
+   the task into a recall exercise.
+
 ## What's next
 
 The benchmark runs end to end: four models have been through the full

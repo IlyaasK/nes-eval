@@ -69,6 +69,15 @@ instruction in `TASK.md`, not something enforced.
 
 ### Model runs
 
+These are **v1.0** results: four models, each graded against the environment
+commit recorded in its attempt repository. Two known environment gaps are
+documented in `WRITEUP.md` ("Reference-fitting") — the ABI does not state the
+reference's first-call frame convention, and the practice-ROM provenance names
+the reference emulator. Both are information the candidates had to work out
+for themselves, which is why v1.0 scores are not comparable with any future
+v1.1 runs; the grader, corpus and reference cache themselves are unchanged.
+
+
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
 |---|---|---|---|---|---|---|---|
 | GPT-6.1 Sol (high thinking) | codex 0.162.1 | 24 h | **0.9860** | 0.9300 | **1.0000** | **1.0000** | [repo](https://github.com/IlyaasK/nes-eval-attempt-gpt-6.1-sol) |
