@@ -206,11 +206,12 @@ def bar(x):
     return f'<span class="bar"><i style="width:{w:.1f}%"></i></span>'
 
 
-def page(title, body, active="", desc=""):
+def page(title, body, active="", desc="", wide=False):
     nav = [
         ("Leaderboard", f"{BASE}/", "home"),
         ("Results", f"{BASE}/results/", "results"),
         ("Watch", f"{BASE}/watch/", "watch"),
+        ("Play", f"{BASE}/play/", "play"),
         ("Blog", f"{BASE}/blog/", "blog"),
         ("Code", REPO, ""),
     ]
@@ -236,14 +237,14 @@ def page(title, body, active="", desc=""):
 <link rel="stylesheet" href="{BASE}/style.css">
 </head>
 <body>
-<header class="site"><div class="wrap">
+<header class="site"><div class="wrap{' wide' if wide else ''}">
 <a class="logo" href="{BASE}/">NES<span>·</span>EVAL</a>
 <nav class="site">{links}</nav>
 </div></header>
-<main class="wrap">
+<main class="wrap{' wide' if wide else ''}">
 {body}
 </main>
-<footer class="site"><div class="wrap">
+<footer class="site"><div class="wrap{' wide' if wide else ''}">
 Built by <a href="https://ilya.as/">Ilyaas Kapadia</a>, modelled on Mechanize's
 <a href="https://gbaeval.com">GBA Eval</a>. Grader, corpus and environment:
 <a href="{REPO}">github.com/IlyaasK/nes-eval</a>.
@@ -379,7 +380,8 @@ different console. The grader and metrics are theirs; the reference
 (<a href="https://github.com/doublegate/RustyNES">RustyNES</a>), the ABI, the
 corpus and the agent environment are new, and so are the problems the NES
 raised. <a href="{BASE}/blog/porting-gba-eval/">How the port works</a> ·
-<a href="{BASE}/blog/reward-hacking/">Did any model hack the grader?</a></p>
+<a href="{BASE}/blog/reward-hacking/">Did any model hack the grader?</a> ·
+<a href="{BASE}/play/">Run the emulators in your browser</a></p>
 
 <h2>Leaderboard</h2>
 <div class="scroll"><table>
@@ -490,6 +492,9 @@ def build_model(out, e):
                   ("Environment", f'NES Eval <a href="{REPO}/commit/{e["env"]}"><code>{e["env"]}</code></a>')]
     facts += e.get("facts", [])
     facts.append(("Source", f'<a href="{e["attempt"]}">{esc(e["attempt"].replace("https://", ""))}</a>'))
+    if any(m[0] == e["slug"] for m in PLAY_MODELS):
+        facts.append(("Play", f'<a href="{BASE}/play/?game=nova-the-squirrel-gameplay&amp;model={e["slug"]}&amp;mode=replay">'
+                              f'run it next to the reference in your browser</a>'))
     meta = "".join(f"<tr><th>{k}</th><td>{v}</td></tr>" for k, v in facts)
 
     parts = [f'<h1>{esc(e["name"])}</h1>', f'<p class="lede">{e["blurb"]}</p>',
@@ -561,13 +566,15 @@ def build_model(out, e):
 
 def build_watch(out):
     items = []
-    for file, _, tc, start, _, title, cap in CLIPS:
+    for file, slug, tc, start, _, title, cap in CLIPS:
         cand = title.split(" on ")[0].split(" with ")[0]
+        live = f'{BASE}/play/?game={tc}&model={PLAY_IDS[slug]}&mode=replay'
         items.append(f"""<h2>{esc(title)}</h2>
 <figure>
 <video class="nes" src="{BASE}/clips/{file}.mp4" controls muted loop playsinline preload="metadata"></video>
 <div class="clip-labels"><span>Reference</span><span>{esc(cand)}</span><span>Difference</span></div>
-<figcaption>{cap} <span class="muted">Frames {start}–{start + _clip_len(file)} of <code>{tc}</code>.</span></figcaption>
+<figcaption>{cap} <span class="muted">Frames {start}–{start + _clip_len(file)} of <code>{tc}</code>.</span>
+<a href="{live}">Run the whole replay live in your browser</a>.</figcaption>
 </figure>""")
     body = ("<h1>Watch</h1><p>Each clip is the grader's own lockstep output: the "
             "reference on the left, the candidate in the middle, and their per-pixel "
@@ -578,6 +585,137 @@ def build_watch(out):
 
 def _clip_len(file):
     return next(c[4] for c in CLIPS if c[0] == file)
+
+
+# Emulators offered on the Play page: (id, label, wasm source, results page).
+# Relative sources are under the repository; "@grades/" under --media's dir.
+PLAY_MODELS = [
+    ("gpt-6.1-sol", "GPT-6.1 Sol", "results/codex-gpt-6.1-sol-24h/final/nes_emu.wasm", "gpt-6.1-sol"),
+    ("deepseek-v4.1-flash", "DeepSeek V4.1 Flash", "results/deepseek-v4.1-flash-24h/final/nes_emu.wasm", "deepseek-v4.1-flash"),
+    # The published DeepSeek source with FIRST_FRAME_SKIPS set to false (see
+    # the reward-hacking post); built from the attempt repository's final commit.
+    ("deepseek-flag-off", "DeepSeek V4.1 Flash, FIRST_FRAME_SKIPS = false", "@grades/wasm/deepseek-flag-off.wasm", "deepseek-v4.1-flash"),
+    ("nes-core", "nes-core (baseline)", "candidates/nes-core/nes_core.wasm", "nes-core"),
+    ("space-bunny-free", "Space Bunny Free", "results/space-bunny-free/final/nes_emu.wasm", "space-bunny-free"),
+]
+# CLIPS grade slugs → Play model ids.
+PLAY_IDS = {"sol": "gpt-6.1-sol", "deepseek": "deepseek-v4.1-flash", "deepseek-noskip": "deepseek-flag-off",
+            "nes-core": "nes-core", "space-bunny": "space-bunny-free"}
+
+
+def build_play(out, grades_dir):
+    dst = out / "play"
+    shutil.rmtree(dst, ignore_errors=True)
+    for sub in ("wasm", "roms", "replays", "licenses"):
+        (dst / sub).mkdir(parents=True)
+    shutil.copy(ROOT / "reference/nes-ref.wasm", dst / "wasm/reference.wasm")
+    shutil.copy(ROOT / "spec/nes_palette.pal", dst / "nes_palette.pal")
+    shutil.copy(SITE / "play.js", dst / "play.js")
+
+    models = []
+    for mid, label, src, page_slug in PLAY_MODELS:
+        path = grades_dir / src[len("@grades/"):] if src.startswith("@grades/") else ROOT / src
+        shutil.copy(path, dst / f"wasm/{mid}.wasm")
+        models.append(dict(id=mid, label=label, wasm=f"{BASE}/play/wasm/{mid}.wasm",
+                           page=f"{BASE}/model/{page_slug}/"))
+
+    games = []
+    for t in sorted(TESTCASES, key=lambda t: (t["section"] != "replay", t["section"], t["id"])):
+        rom_src = ROOT / "corpus/roms" / t["rom_name"]
+        shutil.copy(rom_src, dst / f'roms/{t["id"]}.nes')
+        g = dict(id=t["id"], label=GAME_NAMES.get(t["id"], t["id"]), group=t["section"],
+                 frames=t["frames"], blurb=t["description"], rom=f'{BASE}/play/roms/{t["id"]}.nes',
+                 replay=None, license=None)
+        if t["replay"]:
+            shutil.copy(ROOT / "corpus/replays" / t["replay"], dst / "replays" / t["replay"])
+            g["replay"] = f'{BASE}/play/replays/{t["replay"]}'
+        if t["rom_name"].startswith("homebrew/"):
+            lic = rom_src.with_suffix(".LICENSE.txt")
+            shutil.copy(lic, dst / "licenses" / lic.name)
+            g["license"] = f"{BASE}/play/licenses/{lic.name}"
+        else:
+            doc = "holy_mapperel-README.md" if "holy_mapperel" in t["rom_name"] else "LICENSES-RustyNES-tests.md"
+            g["license"] = f"{REPO}/blob/main/corpus/roms/test/{doc}"
+        games.append(g)
+
+    cfg = dict(reference=f"{BASE}/play/wasm/reference.wasm", palette=f"{BASE}/play/nes_palette.pal",
+               models=models, games=games)
+
+    def options(items, selected):
+        return "".join(f'<option value="{esc(i["id"])}"{" selected" if i["id"] == selected else ""}>{esc(i["label"])}</option>'
+                       for i in items)
+
+    game_opts = (f'<optgroup label="Games (replay section)">{options([g for g in games if g["group"] == "replay"], "nova-the-squirrel-gameplay")}</optgroup>'
+                 f'<optgroup label="Test ROMs (procedural section)">{options([g for g in games if g["group"] != "replay"], "")}</optgroup>')
+    pad = "".join(f'<button type="button" data-key="{k}">{lbl}</button>'
+                  for k, lbl in (("LEFT", "◀"), ("UP", "▲"), ("DOWN", "▼"), ("RIGHT", "▶"),
+                                 ("SELECT", "Select"), ("START", "Start"), ("B", "B"), ("A", "A")))
+    body = f"""
+<h1>Play</h1>
+<p class="lede">The reference emulator and a model's emulator, both running in
+your browser as the same WebAssembly the grader loads, fed the same input every
+frame. Replay the grader's own recorded playthrough, or play it yourself and see
+where the two machines stop agreeing.</p>
+
+<div class="play-controls">
+<label>Game <select id="play-game">{game_opts}</select></label>
+<label>Emulator <select id="play-model">{options(models, "gpt-6.1-sol")}</select></label>
+<label>Input <select id="play-mode"><option value="replay" selected>Grader replay</option><option value="free">Your keyboard</option></select></label>
+<label>Sound <select id="play-sound"><option value="off" selected>Off</option><option value="ref">Reference</option><option value="cand">Emulator</option></select></label>
+<button type="button" id="play-pause">Pause</button>
+<button type="button" id="play-reset">Power cycle</button>
+<label class="file">Load your own .nes<input type="file" id="play-file" accept=".nes"></label>
+</div>
+<p id="play-note" class="small muted"></p>
+<p id="play-status" class="small" role="status"></p>
+
+<div class="screens">
+<figure><canvas id="cv-ref" width="256" height="240"></canvas><figcaption>Reference (RustyNES)</figcaption></figure>
+<figure><canvas id="cv-cand" width="256" height="240"></canvas><figcaption id="play-cand-label">Emulator</figcaption></figure>
+<figure><canvas id="cv-diff" width="256" height="240"></canvas><figcaption>Difference: <span class="hl">differing pixels</span> over the dimmed reference</figcaption></figure>
+</div>
+
+<div class="stats">
+<div><span>Frame</span><strong id="stat-frame">0</strong></div>
+<div><span>Frames that differ</span><strong id="stat-diverging">0</strong></div>
+<div><span>First difference</span><strong id="stat-first">—</strong></div>
+<div><span>Pixels off, this frame</span><strong id="stat-pixels">0</strong></div>
+</div>
+
+<div class="pad" aria-label="Controller">{pad}</div>
+<p class="small muted">Keyboard: arrows or WASD, <kbd>X</kbd> = A, <kbd>Z</kbd> = B,
+<kbd>Enter</kbd> = Start, <kbd>Shift</kbd> = Select. Switch Input to "Your keyboard" to play;
+in "Grader replay" both emulators get exactly the inputs the grader used.</p>
+
+<h2>What you're looking at</h2>
+<p>This is the grader's lockstep loop, moved into the browser: each frame, both
+emulators get the same controller state, run one frame, and their 256×240 palette
+indices are compared. "Frames that differ" counts frames with any differing pixel,
+which is stricter than the score, since the video metric forgives differences too
+small to see. Nothing here is scored, and nothing leaves your browser.</p>
+<p>Things to try:</p>
+<ul>
+<li><a href="?game=nova-the-squirrel-gameplay&amp;model=deepseek-v4.1-flash&amp;mode=replay">Nova the Squirrel on DeepSeek V4.1 Flash</a>:
+sprites drawn with the wrong graphics, but the game stays in step.</li>
+<li><a href="?game=double-action-blaster-guys-gameplay&amp;model=deepseek-flag-off&amp;mode=replay">Double Action Blaster Guys on DeepSeek with
+<code>FIRST_FRAME_SKIPS = false</code></a>: one frame of offset and the replay goes
+somewhere else (<a href="{BASE}/blog/reward-hacking/#constant">why</a>).</li>
+<li><a href="?game=nestest&amp;model=space-bunny-free&amp;mode=replay"><code>nestest</code> on Space Bunny Free</a>: every tile mirrored.</li>
+<li><a href="?game=nmi-and-brk&amp;model=gpt-6.1-sol&amp;mode=replay"><code>nmi-and-brk</code> on GPT-6.1 Sol</a>: the one test it fails.</li>
+<li><a href="?game=falling-gameplay&amp;model=gpt-6.1-sol&amp;mode=free">Falling on GPT-6.1 Sol with your keyboard</a>:
+inputs nobody recorded, and the emulators still have to agree.</li>
+</ul>
+<p class="small muted">The reference is <a href="https://github.com/doublegate/RustyNES">RustyNES</a>
+(GPL-3.0) built for the NES Eval ABI from <a href="{REPO}/tree/main/reference"><code>reference/</code></a>.
+Model emulators are the final commits of their
+<a href="{BASE}/">attempt repositories</a>. Homebrew games are redistributed under their own
+licenses, linked next to each game.</p>
+<script>window.NES_PLAY = {json.dumps(cfg)};</script>
+<script src="{BASE}/play/play.js" defer></script>
+"""
+    write(out, "play/index.html", page("Play", body, "play",
+                                       "Run the NES Eval reference and a model's emulator side by side in your browser.",
+                                       wide=True))
 
 
 def build_blog(out):
@@ -648,6 +786,7 @@ def main():
     for e in entries:
         build_model(out, e)
     build_watch(out)
+    build_play(out, grades_dir)
     build_blog(out)
     if media:
         build_clips(out, grades_dir)
