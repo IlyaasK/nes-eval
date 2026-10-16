@@ -72,6 +72,7 @@ instruction in `TASK.md`, not something enforced.
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
 |---|---|---|---|---|---|---|---|
 | GPT-6.1 Sol (high thinking) | codex 0.162.1 | 24 h | **0.9860** | 0.9300 | **1.0000** | **1.0000** | [repo](https://github.com/IlyaasK/nes-eval-attempt-gpt-6.1-sol) |
+| DeepSeek V4.1 Flash (max thinking, river.ai) | omp 18.11.0 | 24 h | 0.9272 | 0.7700 | 0.9955 | 0.8797 | [repo](https://github.com/IlyaasK/nes-eval-attempt-deepseek-v4.1-flash) |
 | Space Bunny Free (medium thinking) | opencode 1.18.35 | 2 h | 0.0594 | 0.0000 | 0.0098 | 0.2673 | [repo](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free) |
 | Qwen3.8 27B (Hetzner, medium thinking) | omp 18.10.1 | 24 h | — never compiled — | | | | [repo](https://github.com/IlyaasK/nes-eval-attempt-qwen3.8-27b-omp) |
 
@@ -81,6 +82,14 @@ pixel). Its only failure is `nmi-and-brk`, blargg's NMI-hijacking-BRK test,
 which scores 0.0 and accounts for the whole 0.014 gap. It wrote 7,199 lines
 across CPU, PPU, APU and mappers 0–4, plus its own test harness and 44
 analysis tools.
+
+**DeepSeek V4.1 Flash** passed 22 of 29 at 0.999 or better, with four games
+frame-exact and two off by a few thousand pixels. Its failures are five
+zeroes — all four Holy Mapperel cartridge-board ROMs plus blargg's
+official-opcode suite — which is the inverse of the hand-written `nes-core`
+baseline: strong at running real games (replay 0.9955 sits just below
+GPT-6.1 Sol's 1.0000) and weak at the test ROMs that probe specific
+hardware corners.
 
 Each attempt repository holds the model's working directory saved every 15
 minutes, the full transcript (`scripts/render-opencode-transcript.py` for

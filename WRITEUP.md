@@ -20,8 +20,9 @@ graded frames):
 | Space Bunny Free, 2 hours in opencode | 0.0594 |
 | Qwen3.8 27B, 24 hours in omp | never compiled |
 | GPT-6.1 Sol, 24 hours in codex at high thinking | 0.9860 |
+| DeepSeek V4.1 Flash, 24 hours in omp at max thinking | 0.9272 |
 
-The three model results, and what they show, are at the end.
+The four model results, and what they show, are at the end.
 
 ## 1. Emulators hand over palette numbers, not colours
 
@@ -294,17 +295,67 @@ into directories the agent created, and codex's `COMPOSE_FILE` needed
 absolute paths. The watchdog also fired three times; each time codex
 resumed its session, and no committed work was lost.
 
+## The fourth model run: DeepSeek V4.1 Flash, 0.9272, and a bug of mine
+
+DeepSeek V4.1 Flash ran for 24 hours in omp at max thinking, via river.ai
+([attempt repository](https://github.com/IlyaasK/nes-eval-attempt-deepseek-v4.1-flash)):
+
+| Checkpoint | Overall |
+|---|---|
+| 4 h | 0.5564 |
+| 8 h | 0.8880 |
+| 12 h | 0.8934 |
+| 16 h | 0.9132 |
+| 20 h | 0.9272 |
+| final (24 h) | **0.9272** |
+
+Its shape is the inverse of `nes-core`'s. Replay is its strongest section
+at 0.9955: four of the six homebrew games replay frame-exactly and the other
+two differ on a few thousand of 5,400 frames. What it fails instead is five
+test ROMs, all at zero — the four Holy Mapperel cartridge-board ROMs and
+blargg's official-opcode suite. A model that runs real games almost
+perfectly while getting instruction flags and board behaviour wrong is a
+different failure profile from one that does neither, and the sections
+separate them cleanly.
+
+It wrote 7,329 lines and, notably, 59 of its own tools: `compare.py`,
+`audiodiff.py`, `cpufuzz.py`, `asm6502.py`, `dis6502.py`, `attrprobe.py`, and
+its own `tools/STATUS.md` notes on what still differed. 72 agent invocations
+(`omp -p` ends after each turn; the supervisor re-invoked it with
+"continue"), median 8.8 minutes, and 23.85 of the 24 hours had an agent
+working. It cost about $9 in tokens.
+
+**This run also found a bug in NES Eval, not in the model.** The first
+attempt ended after 2h45m, at 0.3538. The supervisor's watchdog measured
+silence with `stat -c %Y "$AGENT_LOG"`, that stat races the background
+redirect which creates the log, and an empty operand inside `$(( ))` does
+not merely fail the test — it aborts the enclosing `while` loop, so the
+supervisor fell through to "run completed". The deepseek run was the victim;
+every earlier run had simply been lucky. The fix (`log_age()`, which always
+returns a number) ships with a regression test that deletes the agent's log
+mid-run: pre-fix code ends a 144-second run after 35 seconds, fixed code runs
+the full 174.
+
+The lesson is worth stating plainly: a benchmark's own harness is code under
+test too. Only the fact that the model's score kept climbing across
+checkpoints (0.5564 → 0.9272) made it obvious that the early "completion" was
+not the model quitting.
+
 ## What's next
 
-The benchmark runs end to end: three models have been through the full
+The benchmark runs end to end: four models have been through the full
 pipeline, from task container to published attempt, and they land 0.0594,
-ungraded (never compiled) and 0.9860. The open questions have changed
-shape:
+ungraded (never compiled), 0.9272 and 0.9860. The open questions have
+changed shape:
 
-- **Headroom.** The first frontier result leaves only 1.4% between it and
-  a perfect score, all of it one CPU-interrupt testcase. To tell strong
-  models apart, the corpus needs harder video and audio material, or
-  longer runs that force the last few percent.
+- **Headroom.** The best result leaves 1.4% between it and a perfect score,
+  all of it one CPU-interrupt testcase. To tell strong models apart, the
+  corpus needs harder video and audio material, or longer runs that force
+  the last few percent.
+- **Different failure modes, not just different scores.** 0.9272 and 0.9860
+  look close but fail in opposite places: one misses five test ROMs, the
+  other misses one and is exact everywhere else. Section-level scores
+  separate them; the single number hides it.
 - **Memorisation.** NES emulators are everywhere in training data, and
   blargg's test ROMs are famous, so a high score could reflect recall
   rather than engineering. Comparing the same model on GBA Eval and NES
