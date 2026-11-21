@@ -75,12 +75,13 @@ instruction in `TASK.md`, not something enforced.
 ### Model runs
 
 These are **v1.0** results: four models, each graded against the environment
-commit recorded in its attempt repository. Two known environment gaps are
-documented in `WRITEUP.md` ("Reference-fitting") — the ABI does not state the
-reference's first-call frame convention, and the practice-ROM provenance names
-the reference emulator. Both are information the candidates had to work out
-for themselves, which is why v1.0 scores are not comparable with any future
-v1.1 runs; the grader, corpus and reference cache themselves are unchanged.
+commit recorded in its attempt repository. Two environment gaps are
+documented in `WRITEUP.md` ("Reference-fitting"): the v1.0 ABI did not state
+the reference's first-call frame convention (`spec/ABI.md` now does), and the
+practice-ROM provenance names the reference emulator. Both are information the
+candidates had to work out for themselves, which is why v1.0 scores are not
+comparable with runs against a later environment; the grader, corpus and
+reference cache themselves are unchanged.
 
 
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
@@ -131,7 +132,7 @@ replay diverges from the reference almost immediately and never recovers
 `emu_run_frame` call and the reference emulates none: it runs one frame ahead,
 so every replayed input reaches the game a frame late. With that one call
 skipped, a one-line change, the same untuned emulator scores **0.9426**
-(replay 0.9996). The published 0.5811 is kept as graded; the convention is a
+(replay 0.9996). The published 0.5811 is kept as graded; the convention was a
 gap in the v1.0 ABI, below.
 
 Each injected bug lands where it should. A one-line video offset fails
@@ -309,14 +310,17 @@ every output file to be byte-identical. What makes that hold:
 
 ## Known limits
 
-- **The v1.0 ABI does not state the first-call convention.** The
+- **The v1.0 ABI did not state the first-call convention; it does now.** The
   reference's first `emu_run_frame` after power-on emulates nothing: in all
   29 reference caches frame 0 is an all-zero framebuffer with zero audio
-  samples. `spec/ABI.md`'s frame definition, read literally, implies a full
-  frame. An emulator that follows the text runs one frame ahead and loses
-  about 0.36: `nes-core` scores 0.5811 as published and 0.9426 with the first
-  call skipped, and DeepSeek V4.1 Flash's fitted `FIRST_FRAME_SKIPS` constant
-  is worth 0.362 of its 0.9272. v1.1 will document it; published scores stand.
+  samples. The v1.0 frame definition, read literally, implied a full frame. An
+  emulator that followed the text ran one frame ahead and lost about 0.36:
+  `nes-core` scores 0.5811 as published and 0.9426 with the first call
+  skipped, and DeepSeek V4.1 Flash's fitted `FIRST_FRAME_SKIPS` constant is
+  worth 0.362 of its 0.9272. `spec/ABI.md` ("Frames") now states the
+  convention, checked against `reference/nes-ref.wasm` after both
+  `emu_load_rom` and `emu_reset`. Published v1.0 scores stand; runs against
+  this or a later environment commit are not comparable with them.
 - **Candidates are graded against RustyNES, not hardware.** Where RustyNES
   is wrong, a more accurate candidate loses points. That is why the
   procedural set only includes tests the reference passes. A model that

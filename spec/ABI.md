@@ -41,6 +41,11 @@ for scanline 0. The framebuffer then holds scanlines 0–239 of the frame just
 finished. On odd frames with rendering enabled, the pre-render line is one
 dot shorter, as on hardware.
 
+The first `emu_run_frame` after `emu_load_rom` or `emu_reset` emulates
+nothing: it returns with an all-zero framebuffer, and `emu_audio_samples`
+then reports 0. Every later call advances one frame as described above, so
+the second call returns the console's first frame.
+
 ## Power-on state
 
 `emu_load_rom` and `emu_reset` must produce exactly this state, which the

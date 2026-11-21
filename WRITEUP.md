@@ -415,7 +415,7 @@ published v1.0 results:
 
 1. Probe the reference's first-call and frame-alignment behaviour and write
    it into the ABI, so compliance is a documented requirement instead of a
-   discovery.
+   discovery. (Done for the first call: `spec/ABI.md`, "Frames".)
 2. Stop leaking the reference's identity. `corpus/roms/dev/README.md` and
    `test/LICENSE.txt` say the practice ROMs were "copied byte-for-byte from
    `third_party/RustyNES/tests/roms/`", naming the reference emulator and its
