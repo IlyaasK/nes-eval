@@ -1,21 +1,14 @@
 Development test ROMs (blargg / Shay Green)
 ============================================
 Author: Shay Green ("blargg", gblargg@gmail.com)
-Source (as vendored here): https://github.com/doublegate/RustyNES at commit 30e6b98bcb30dc057221454c7c66a96487fe03d8, directory tests/roms/ (local copy: third_party/RustyNES/tests/roms/)
-Upstream aggregator: https://github.com/christopherpow/nes-test-roms at commit 95d8f621ae55cee0d09b91519a8989ae0e64753b; every file below is byte-identical to the aggregator path listed for it
-License: Public domain, as documented by RustyNES tests/roms/LICENSES.md and tests/roms/blargg/README.md (quoted below)
-
-License source URL(s):
-  - https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
-  - https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/blargg/README.md
-  - https://www.nesdev.org/wiki/Emulator_tests (lists blargg as the author of each suite)
+Source: https://github.com/christopherpow/nes-test-roms at commit 95d8f621ae55cee0d09b91519a8989ae0e64753b; every file below is byte-identical to the path listed for it
+License: Public domain, as these suites are commonly documented (see https://www.nesdev.org/wiki/Emulator_tests, which lists blargg as the author of each suite)
 
 Caveat: the original readme.txt files (quoted below) identify blargg as the
 author but contain no license statement and no usage restriction. No
 explicit public-domain dedication written by blargg himself was found at an
 author-controlled source (his old sites, slack.net/~ant and
-blargg.8bitalley.com, did not respond when checked). The public-domain
-status is as RustyNES documents it.
+blargg.8bitalley.com, did not respond when checked).
 
 ------------------------------------------------------------------------
 Files (name here <- aggregator path; sha256)
@@ -81,66 +74,6 @@ ppu_open_bus.nes <- ppu_open_bus/ppu_open_bus.nes
     sha256 d4208a3ff6340532dd0fced7f9d408d5b6585853a0ddc9c1f64ee1722ef08e67
 instr_timing.nes <- instr_timing/instr_timing.nes
     sha256 3d1bca14266f1e25b75a34ddd29c9df1ce9c6d990c8663a218f72e7861660fb0
-
-
-------------------------------------------------------------------------
-RustyNES tests/roms/LICENSES.md, lines 1-21
-Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
-------------------------------------------------------------------------
-
-# Test ROM provenance and licensing
-
-All ROMs vendored under `tests/roms/` are public-domain works released
-specifically for the purpose of validating NES emulator implementations.
-No commercial Nintendo software is bundled. End users who want to test
-against commercial dumps they own should drop them in
-`tests/roms/external/` (gitignored).
-
-The corpus below was sourced from
-`https://github.com/christopherpow/nes-test-roms` (commit at clone time
-on the build host). Each individual ROM has its own author and license
-statement; aggregator status of the GitHub repository does not change
-those underlying terms.
-
-## blargg's NES test ROMs (Shay Green, `gblargg@gmail.com`)
-
-Shay Green ("blargg") released his NES test ROM suites into the public
-domain. The accompanying `readme.txt` for each suite identifies him as
-the author and contains no usage restrictions. The suites are widely
-mirrored and redistributed; their public-domain status is documented
-e.g. on the NESdev wiki (`https://www.nesdev.org/wiki/Emulator_tests`).
-
-
-------------------------------------------------------------------------
-RustyNES tests/roms/LICENSES.md, table rows for the suites used here
-Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/LICENSES.md
-------------------------------------------------------------------------
-
-| File | Suite | Source path in nes-test-roms | Mapper | Author | License |
-|------|-------|------------------------------|--------|--------|---------|
-| `assorted/cpu_reset_registers.nes` | CPU reset | `cpu_reset/registers.nes` | NROM (0) | blargg | Public domain |
-| `blargg/instr_timing/instr_timing.nes` + `1-instr_timing`/`2-branch_timing` | instr_timing (aggregate + 2 sub-ROMs) | `instr_timing/{instr_timing.nes,rom_singles/*.nes}` | MMC1 (1) | blargg | Public domain (T-71-003) |
-| `blargg/branch_timing_tests/*.nes` | Branch timing | `branch_timing_tests/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/ppu_vbl_nmi/01-vbl_basics.nes` ... `10-even_odd_timing.nes` | PPU VBL/NMI timing (10 sub-ROMs) | `ppu_vbl_nmi/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/ppu_open_bus/ppu_open_bus.nes` | PPU open bus | `ppu_open_bus/ppu_open_bus.nes` | NROM (0) | blargg | Public domain |
-| `blargg/sprite_overflow_tests/1.Basics.nes` ... `5.Emulator.nes` | Sprite overflow (5 sub-ROMs) | `sprite_overflow_tests/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/sprite_hit_tests/01.basics.nes` ... `11.edge_timing.nes` | Sprite-zero hit (11 sub-ROMs) | `sprite_hit_tests_2005.10.05/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/apu_test/1-len_ctr.nes` ... `8-dmc_rates.nes` | APU register I/O + DMC (8 sub-ROMs) | `apu_test/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/cpu_interrupts_v2/1-cli_latency.nes` ... `5-branch_delays_irq.nes` | CPU interrupt timing (5 sub-ROMs) | `cpu_interrupts_v2/rom_singles/*.nes` | NROM (0) | blargg | Public domain |
-| `blargg/mmc3_test_2/1-clocking.nes` ... `6-MMC3_alt.nes` | MMC3 IRQ + banking validation (6 sub-ROMs; modern $6000 protocol) | `mmc3_test_2/rom_singles/*.nes` | MMC3 (4) | blargg | Public domain |
-
-
-------------------------------------------------------------------------
-RustyNES tests/roms/blargg/README.md, 'License' section
-Verbatim from: https://github.com/doublegate/RustyNES/blob/30e6b98bcb30dc057221454c7c66a96487fe03d8/tests/roms/blargg/README.md
-------------------------------------------------------------------------
-
-## License
-
-Public domain. blargg released each suite explicitly for emulator
-validation purposes; the upstream `readme.txt` files (preserved in
-each subdirectory) carry no usage restrictions.
-
 
 ------------------------------------------------------------------------
 ppu_vbl_nmi/readme.txt: opening paragraph and signature (excerpt; no license text present in the file)

@@ -87,7 +87,7 @@ while [ $# -gt 0 ]; do
         --native)       GRADE_MODE=(--native); shift ;;
         --stall-minutes) STALL_MIN="$2"; shift 2 ;;
         --resume-workspace) RESUME_WS=1; shift ;;
-        -h|--help)      sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)      sed -n '2,54p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown argument: $1 (see --help)" >&2; exit 2 ;;
     esac
 done
