@@ -14,13 +14,13 @@ graded frames):
 | Emulator | Overall |
 |---|---|
 | Reference (RustyNES) against itself | 1.0000 |
-| `nes-core`, a 2,600-line emulator written from the NESdev wiki | 0.5811 |
+| `nes-core`, a 2,600-line emulator written from the NESdev wiki | 0.9426 (0.5811 under v1.0) |
 | Reference with three injected bugs | 0.1948 |
 | Blank screen | 0.0039 |
 | Space Bunny Free, 2 hours in opencode | 0.0594 |
 | Qwen3.8 27B, 24 hours in omp | never compiled |
 | GPT-6.1 Sol, 24 hours in codex at high thinking | 0.9860 |
-| DeepSeek V4.1 Flash, 24 hours in omp at max thinking | 0.9272 |
+| DeepSeek V4.1 Flash, 24 hours (+2h43m inherited) in omp at max thinking | 0.9272 |
 
 The four model results, and what they show, are at the end.
 
@@ -176,7 +176,8 @@ timing errors compound. It's also a warning: the score is sensitive to
 exact timing, which is what keeps frontier models from all scoring 0.99,
 but it can also make the scores swing on a single detail. Here the detail
 turned out not to be emulation at all but the first-call convention: with
-that one call skipped, the same untuned `nes-core` scores 0.9426.
+that one call skipped, the same untuned `nes-core` scores 0.9426. v1.1 states
+the convention in the ABI, and `nes-core` now follows it.
 
 ## The first model run
 
@@ -330,6 +331,15 @@ its own `tools/STATUS.md` notes on what still differed. 72 agent invocations
 "continue"), median 8.8 minutes, and 23.85 of the 24 hours had an agent
 working. It cost about $9 in tokens.
 
+**It also had a head start, which I only noticed later.** This 24-hour run
+was a rerun after the early ending described next, and it did not start from
+an empty workspace: `/task` is a named Docker volume, it survived between the
+two attempts, and the rerun's first commit
+sits on top of the ended-early attempt's last one, with 5,410 lines of Rust
+already in place. The 0.9272 is from about 26h43m of work, and the 7,329
+lines include the inherited ones. The supervisor now checks that `/task`
+holds only the initial commit and the current spec before a run starts.
+
 **This run also found a bug in NES Eval, not in the model.** The first
 attempt ended after 2h45m, at 0.3538. The supervisor's watchdog measured
 silence with `stat -c %Y "$AGENT_LOG"`, that stat races the background
@@ -396,7 +406,7 @@ responsibility rather than the model's:
   and complied. That is the right engineering response to an underspecified
   interface, and it is the third time this has bitten: `nes-core` found the
   same kind of gap in MMC1/MMC3 PRG-RAM sizing and power-on warm-up. I
-  documented those two in the ABI after the fact; this one is still open.
+  documented those two in the ABI after the fact, and this one in v1.1.
 
 **My own baseline had the same bug.** `nes-core`'s replay losses match
 DeepSeek-with-the-flag-off almost exactly: the same games diverge on the
@@ -410,19 +420,21 @@ mostly measures whether you guessed one function call's convention.
 The lesson generalises beyond one constant. **When the score is defined as
 agreement with a reference implementation, every unstated convention is a
 hidden lottery worth points, and the rational strategy is to fit rather than
-derive.** Two fixes, both for a v1.1 environment rather than a rerun of the
+derive.** Two fixes, both made for v1.1 rather than as a rerun of the
 published v1.0 results:
 
 1. Probe the reference's first-call and frame-alignment behaviour and write
    it into the ABI, so compliance is a documented requirement instead of a
-   discovery. (Done for the first call: `spec/ABI.md`, "Frames".)
+   discovery. Done: `spec/ABI.md` ("Frames") states the first-call convention,
+   and `nes-core`, written from the documentation and now following it,
+   replays at 0.9996, so no other frame-alignment convention is hiding.
 2. Stop leaking the reference's identity. `corpus/roms/dev/README.md` and
-   `test/LICENSE.txt` say the practice ROMs were "copied byte-for-byte from
+   `test/LICENSE.txt` said the practice ROMs were "copied byte-for-byte from
    `third_party/RustyNES/tests/roms/`", naming the reference emulator and its
    commit. Qwen3.8 reasoned straight from it: *"this is a strong hint: the
-   reference is likely based on RustyNES"*. Attribution to blargg and
-   `christopherpow/nes-test-roms` gives the same provenance without turning
-   the task into a recall exercise.
+   reference is likely based on RustyNES"*. Done: they now cite blargg and
+   `christopherpow/nes-test-roms`, which give the same provenance without
+   turning the task into a recall exercise.
 
 ## What's next
 

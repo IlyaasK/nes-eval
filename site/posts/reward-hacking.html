@@ -306,26 +306,35 @@ codex resumed its session each time and no work was lost.</p>
 <p>Neither bug would have shown up in a test of the grader. Both showed up
 because a model ran for a long time and did something I didn't expect.</p>
 
-<h2 id="next">What changes in v1.1<a class="anchor" href="#next">#</a></h2>
+<p>Update: there was a third, which I found later. The workspace,
+<code>/task</code>, is a Docker volume that survives between runs, and
+DeepSeek's 24-hour rerun started on top of its own ended-early first
+attempt: 5,410 lines and 2 hours 43 minutes of work were already there, so
+its 0.9272 is from about 26h43m. The supervisor now refuses to start on a
+used workspace.</p>
+
+<h2 id="next">What changed in v1.1<a class="anchor" href="#next">#</a></h2>
 
 <p>The published scores are v1.0 and stay as they are. Each attempt
 repository records the environment commit it ran against, and the grader,
-corpus and reference cache don't change. The next version fixes the
-environment, not the scores:</p>
+corpus and reference cache don't change. v1.1 fixes the environment, not the
+scores:</p>
 
 <ol>
-<li><strong>State the first-call convention in the ABI</strong>: the first
+<li><strong>The first-call convention is in the ABI</strong>: the first
 <code>emu_run_frame</code> after power-on emulates nothing and produces no
 audio. This changes no score already published, and it makes the 0.36 a
-requirement anyone can read rather than a discovery. (Done: <code>spec/ABI.md</code>
-now states it.)</li>
-<li><strong>Specify or neutralise resampling</strong>, so exact audio means
-an exact APU, not a fitted copy of one emulator's filter.</li>
-<li><strong>Stop naming the reference</strong> in the agent-visible ROM
-provenance.</li>
-<li><strong>Bring the baseline into conformance</strong>, so
-<code>nes-core</code> means what it was supposed to mean: a careful emulator
-written from the documentation. Under v1.1 that's 0.94, not 0.58.</li>
+requirement anyone can read rather than a discovery.</li>
+<li><strong>The audio pipeline is specified</strong>: mixer, band-limited
+resampler, output filters and <code>int16</code> conversion, with constants
+and operation order, so exact audio means an exact APU, not a fitted copy of
+one emulator's filter. An implementation written only from the spec
+reproduces the reference's output sample for sample.</li>
+<li><strong>The reference is no longer named</strong> in the agent-visible
+ROM provenance.</li>
+<li><strong>The baseline conforms</strong>, so <code>nes-core</code> means
+what it was supposed to mean: a careful emulator written from the
+documentation. It scores 0.9426, not 0.5811.</li>
 </ol>
 
 <p>If I had to name one thing these runs taught me about building evals, it's

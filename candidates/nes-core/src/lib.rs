@@ -73,6 +73,8 @@ struct State {
     framebuffer: [u16; PIXELS],
     audio_out: Vec<i16>,
     audio_drained: bool,
+    /// The first `emu_run_frame` after power-on emulates nothing (spec/ABI.md, "Frames").
+    first_call: bool,
 }
 
 struct Global(UnsafeCell<Option<Box<State>>>);
@@ -96,6 +98,7 @@ fn state() -> &'static mut State {
                 framebuffer: [0; PIXELS],
                 audio_out: Vec::with_capacity(8192),
                 audio_drained: false,
+                first_call: false,
             })
         })
     }
@@ -106,6 +109,7 @@ fn power_on(st: &mut State) -> i32 {
     st.framebuffer.fill(0);
     st.audio_out.clear();
     st.audio_drained = false;
+    st.first_call = true;
     st.nes.is_some() as i32
 }
 
@@ -153,6 +157,11 @@ pub extern "C" fn emu_run_frame() {
     if st.audio_drained {
         st.audio_out.clear();
         st.audio_drained = false;
+    }
+    if st.first_call {
+        // the framebuffer stays all zero and no audio is produced
+        st.first_call = false;
+        return;
     }
     nes.run_frame();
     st.framebuffer.copy_from_slice(&nes.frame()[..]);

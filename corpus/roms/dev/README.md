@@ -15,7 +15,7 @@ All games are NTSC and boot to their title screen. Controller 1 (A, B, Select, S
 
 ## Test ROMs (`test/`)
 
-Single-purpose CPU/PPU/APU/mapper tests by Shay Green ("blargg"), copied byte-for-byte from `third_party/RustyNES/tests/roms/` (identical to the files in <https://github.com/christopherpow/nes-test-roms>). Files are named `<suite>__<test>.nes`.
+Single-purpose CPU/PPU/APU/mapper tests by Shay Green ("blargg"), byte-identical to the files in <https://github.com/christopherpow/nes-test-roms>. Files are named `<suite>__<test>.nes`.
 
 How results are reported: suites marked $6000 write a status byte to $6000 ($80 = running, $81 = press Reset, $00 = passed, other values = failure code) and a NUL-terminated text log from $6004, after writing the signature $DE $B0 $61 to $6001-$6003; they also print the result on screen and beep it. The others (sprite_hit_tests, sprite_overflow_tests, branch_timing_tests) report only on screen and by beeps.
 
@@ -52,4 +52,4 @@ How results are reported: suites marked $6000 write a status byte to $6000 ($80 
 | `test/ppu_open_bus.nes` | ppu_open_bus | reads of open-bus PPU bits/registers, including the decay register | 0 | $6000 | blargg (Shay Green) | Public domain |
 | `test/instr_timing.nes` | instr_timing | timing of all CPU instructions (except the 12 that freeze the CPU) and branches | 1 | $6000 | blargg (Shay Green) | Public domain |
 
-`cpu_reset__registers.nes` needs the console Reset button to be pressed when it asks (status $81). The public-domain status of the test ROMs is as documented by RustyNES; see the caveat in `test/LICENSE.txt`.
+`cpu_reset__registers.nes` needs the console Reset button to be pressed when it asks (status $81). On the public-domain status of the test ROMs, see the caveat in `test/LICENSE.txt`.

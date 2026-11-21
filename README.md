@@ -65,7 +65,7 @@ instruction in `TASK.md`, not something enforced.
 | Candidate | Overall | Procedural | Replay | Audio |
 |---|---|---|---|---|
 | reference (RustyNES) | **1.0000** | 1.0000 | 1.0000 | 1.0000 |
-| `nes-core` baseline (below) | **0.5811** | 0.8300 | 0.4569 | 0.7050 |
+| `nes-core` baseline (below) | **0.9426** | 0.8300 | 0.9996 | 0.8843 |
 | `bug-scanline`: picture one scanline late | 0.3257 | 0.0000 | 0.2095 | 1.0000 |
 | `bug-ab-swap`: A and B swapped | 0.5389 | 1.0000 | 0.3282 | 0.7100 |
 | `bug-no-tri-noise`: no triangle or noise channel | 0.9452 | 1.0000 | 1.0000 | 0.7261 |
@@ -87,9 +87,15 @@ reference cache themselves are unchanged.
 | Model | Harness | Time | Overall | Procedural | Replay | Audio | Attempt |
 |---|---|---|---|---|---|---|---|
 | GPT-6.1 Sol (high thinking) | codex 0.162.1 | 24 h | **0.9860** | 0.9300 | **1.0000** | **1.0000** | [repo](https://github.com/IlyaasK/nes-eval-attempt-gpt-6.1-sol) |
-| DeepSeek V4.1 Flash (max thinking, river.ai) | omp 18.11.0 | 24 h | 0.9272 | 0.7700 | 0.9955 | 0.8797 | [repo](https://github.com/IlyaasK/nes-eval-attempt-deepseek-v4.1-flash) |
+| DeepSeek V4.1 Flash (max thinking, river.ai) | omp 18.11.0 | 24 h + 2h43m inherited (see below) | 0.9272 | 0.7700 | 0.9955 | 0.8797 | [repo](https://github.com/IlyaasK/nes-eval-attempt-deepseek-v4.1-flash) |
 | Space Bunny Free (medium thinking) | opencode 1.18.35 | 2 h | 0.0594 | 0.0000 | 0.0098 | 0.2673 | [repo](https://github.com/IlyaasK/nes-eval-attempt-space-bunny-free) |
 | Qwen3.8 27B (Hetzner, medium thinking) | omp 18.10.1 | 24 h | — never compiled — | | | | [repo](https://github.com/IlyaasK/nes-eval-attempt-qwen3.8-27b-omp) |
+
+The DeepSeek V4.1 Flash run did not start from scratch. Its first attempt
+ended early at 2h43m (a supervisor bug, see `WRITEUP.md`), and the 24-hour
+rerun started in the same `/task` volume, on top of that attempt's 5,410
+lines and 11 commits (its git history shows both). Its 0.9272 is from about
+26h43m of work. `run-agent.sh` now refuses to start on a used workspace.
 
 **GPT-6.1 Sol** passed 28 of the 29 testcases at 0.999 or better. Five of
 the six homebrew games replay identically to the reference, every pixel of
@@ -125,15 +131,14 @@ results rather than padded.
 **`nes-core`** ([`candidates/nes-core`](candidates/nes-core/README.md)) is
 the counterpart of GBA Eval's `gba-core` (which scores about 0.53 there):
 an original, MIT-licensed, 2,600-line emulator written from the NESdev
-wiki without looking at any other emulator, and graded once without
-tuning. It passes 19 of the 23 test ROMs. In four of the six games its
-replay diverges from the reference almost immediately and never recovers
-(95–97% of frames differ), because it emulates a whole frame on the first
-`emu_run_frame` call and the reference emulates none: it runs one frame ahead,
-so every replayed input reaches the game a frame late. With that one call
-skipped, a one-line change, the same untuned emulator scores **0.9426**
-(replay 0.9996). The published 0.5811 is kept as graded; the convention was a
-gap in the v1.0 ABI, below.
+wiki without looking at any other emulator, and never tuned against the
+corpus. It passes 19 of the 23 test ROMs. Graded under v1.0 it scored
+0.5811: in four of the six games its replay diverged from the reference almost
+immediately and never recovered (95–97% of frames differ), because it emulated
+a whole frame on the first `emu_run_frame` call and the reference emulates
+none. It ran one frame ahead, so every replayed input reached the game a frame
+late. v1.1 states that convention in the ABI, and `nes-core` now follows it
+(a one-line change, no emulation change): **0.9426**, replay 0.9996.
 
 Each injected bug lands where it should. A one-line video offset fails
 every self-checking ROM's final screen and most replay frames, but leaves
@@ -299,8 +304,9 @@ every output file to be byte-identical. What makes that hold:
 
 - RustyNES's core uses no clock, thread or OS randomness, and the ABI pins
   power-on state.
-- wasm is deterministic except for NaN bit patterns; the grader turns on
-  NaN canonicalisation.
+- wasm is deterministic except for NaN bit patterns and relaxed SIMD; the
+  grader turns on NaN canonicalisation and wasmtime's deterministic relaxed
+  SIMD, so neither depends on the host CPU.
 - The grader never reads the clock (GBA Eval's `summary.json` timestamp is
   removed), and every map is a `BTreeMap`, so summing order and JSON key
   order are fixed. Testcases run in parallel, but each has its own state
@@ -308,19 +314,51 @@ every output file to be byte-identical. What makes that hold:
 - `scripts/build-wasm.sh` produces the same wasm bytes on every build with
   the pinned toolchain.
 
+## v1.1
+
+The model runs above are v1.0. v1.1 changes the environment, not the
+grader's metrics, corpus or reference cache, so a candidate scores the same
+under both; what changes is what the agent is told and shown. Runs against
+v1.1 are not comparable with v1.0 runs.
+
+- **The first-call convention is in the ABI.** The reference's first
+  `emu_run_frame` after power-on emulates nothing: in all 29 reference caches
+  frame 0 is an all-zero framebuffer with zero audio samples. v1.0's frame
+  definition, read literally, implied a full frame; an emulator that followed
+  the text ran one frame ahead and lost about 0.36 (`nes-core`: 0.5811 under
+  v1.0, 0.9426 following the convention; DeepSeek V4.1 Flash's fitted
+  `FIRST_FRAME_SKIPS` constant is worth 0.362 of its 0.9272). `spec/ABI.md`
+  ("Frames") now states it, checked against `reference/nes-ref.wasm` after
+  both `emu_load_rom` and `emu_reset`. `nes-core`'s 0.9996 replay, from an
+  emulator written from the documentation, is the check that no other
+  frame-alignment convention is missing.
+- **The agent-visible ROM provenance no longer names the reference.** The
+  practice test ROMs' `README.md` and `LICENSE.txt` said they were copied
+  from the reference emulator's repository; they now cite the
+  `christopherpow/nes-test-roms` aggregator they are byte-identical to. The
+  full vendoring record moved to `corpus/roms/dev-test-provenance.txt`,
+  outside the task image.
+- **The audio pipeline is in the ABI.** Nothing in the hardware produces a
+  44 100 Hz stream, so mixing, band-limited resampling, output filtering and
+  the conversion to `int16` are the reference's convention; v1.0 only gave
+  the rate. GPT-6.1 Sol spent 2,713 of its 7,199 lines fitting that
+  convention through the oracle. `spec/ABI.md` ("Audio") now specifies every
+  stage, with constants and operation order, plus the triangle's ungated
+  output and the per-frame sample counts (0, then 716, then 733 or 734).
+  Checked by an implementation written only from the text: bit-identical to
+  `reference/nes-ref.wasm`'s output, except that the resampler's kernel
+  depends on the platform's `sin`/`cos` (at most 1 LSB in `int16`).
+- **Relaxed SIMD is deterministic.** The grader enables wasmtime's
+  deterministic relaxed SIMD, so a candidate using it scores the same on any
+  host CPU. No published score changes (nes-core regrades bit-identically).
+- **A run must start from a fresh workspace.** `/task` is a named volume that
+  survives `docker compose down`, and the DeepSeek V4.1 Flash 24-hour run
+  started on top of its own ended-early attempt's work. `run-agent.sh` now
+  refuses a `/task` with more than the initial commit or a stale spec, unless
+  given `--resume-workspace`.
+
 ## Known limits
 
-- **The v1.0 ABI did not state the first-call convention; it does now.** The
-  reference's first `emu_run_frame` after power-on emulates nothing: in all
-  29 reference caches frame 0 is an all-zero framebuffer with zero audio
-  samples. The v1.0 frame definition, read literally, implied a full frame. An
-  emulator that followed the text ran one frame ahead and lost about 0.36:
-  `nes-core` scores 0.5811 as published and 0.9426 with the first call
-  skipped, and DeepSeek V4.1 Flash's fitted `FIRST_FRAME_SKIPS` constant is
-  worth 0.362 of its 0.9272. `spec/ABI.md` ("Frames") now states the
-  convention, checked against `reference/nes-ref.wasm` after both
-  `emu_load_rom` and `emu_reset`. Published v1.0 scores stand; runs against
-  this or a later environment commit are not comparable with them.
 - **Candidates are graded against RustyNES, not hardware.** Where RustyNES
   is wrong, a more accurate candidate loses points. That is why the
   procedural set only includes tests the reference passes. A model that

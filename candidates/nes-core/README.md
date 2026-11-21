@@ -80,8 +80,11 @@ every mmc3_test_2 ROM (A12 timing), ppu_open_bus.
 
 ## Score
 
-Measured once, with no tuning against the corpus:
+Never tuned against the corpus. The only change since it was first graded is
+the ABI's first-call convention (`spec/ABI.md`, "Frames"; stated in v1.1): the
+first `emu_run_frame` after power-on emulates nothing.
 
-| Overall | Procedural | Replay | Audio |
-|---|---|---|---|
-| 0.5811 | 0.8300 | 0.4569 | 0.7050 |
+| ABI | Overall | Procedural | Replay | Audio |
+|---|---|---|---|---|
+| v1.1 (current) | **0.9426** | 0.8300 | 0.9996 | 0.8843 |
+| v1.0, first call emulating a frame | 0.5811 | 0.8300 | 0.4569 | 0.7050 |

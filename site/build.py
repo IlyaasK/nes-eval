@@ -60,10 +60,12 @@ ENTRIES = [
     dict(
         slug="deepseek-v4.1-flash", name="DeepSeek V4.1 Flash", kind="model",
         run="deepseek-v4.1-flash-24h", harness="omp 18.11.0", thinking="max",
-        hours=24, env="77c709b",
+        hours=24, time="24 h<div class=\"small muted\">+ 2h43m inherited</div>", env="77c709b",
         attempt="https://github.com/IlyaasK/nes-eval-attempt-deepseek-v4.1-flash",
         facts=[
-            ("Code", "7,329 lines of Rust; 92 commits; 59 Python tools of its own"),
+            ("Head start", "the run began on the 5,410 lines and 2h43m of work its "
+                           "ended-early first attempt left in the workspace: about 26h43m in all"),
+            ("Code", "7,329 lines of Rust (inherited lines included); 92 commits; 59 Python tools of its own"),
             ("Tool calls", "3,422; 190 shell commands invoking the oracle directly"),
             ("Tokens", "27.7M input, 4.25M output (3.12M reasoning), 1.59B cache reads; about $9"),
             ("Agent sessions", "72 (omp -p ends each turn; median 8.8 minutes)"),
@@ -103,12 +105,13 @@ ENTRIES = [
               "compile errors at hour 13:45, then regressed to 9.",
     ),
     dict(
-        slug="nes-core", name="nes-core", kind="baseline", grade="g-nes-core",
+        slug="nes-core", name="nes-core", kind="baseline", grade="g-nes-core-v1.1",
         blurb="A 2,600-line emulator I wrote from the NESdev wiki without looking "
-              "at any other emulator, graded once and never tuned against the corpus. "
-              "The NES counterpart of GBA Eval's <code>gba-core</code>. Most of its "
-              "replay loss turned out to be the same unstated first-frame convention "
-              "the DeepSeek run fitted: with a one-line change it scores 0.9426 "
+              "at any other emulator, never tuned against the corpus. "
+              "The NES counterpart of GBA Eval's <code>gba-core</code>. Under v1.0 it "
+              "scored 0.5811: most of its replay loss was the same unstated first-frame "
+              "convention the DeepSeek run fitted. v1.1 states the convention in the ABI, "
+              "and with that one line it scores 0.9426 "
               f"(<a href=\"{BASE}/blog/reward-hacking/#nes-core\">details</a>).",
         attempt=f"{REPO}/tree/main/candidates/nes-core",
         facts=[("Code", "2,600 lines of Rust, MIT")],
@@ -157,12 +160,12 @@ CLIPS = [
      "of the reference, every recorded button press reaches the game one frame "
      "later than when the replay was recorded, and the playthrough diverges."),
     ("nescore-thwaite", "nes-core", "thwaite-gameplay", 120, 720,
-     "nes-core on Thwaite: one frame ahead, from the first call",
-     "The baseline emulates a whole frame on its first <code>emu_run_frame</code> "
+     "nes-core (v1.0 build) on Thwaite: one frame ahead, from the first call",
+     "The v1.0 baseline emulates a whole frame on its first <code>emu_run_frame</code> "
      "call; the reference emulates nothing on that call. From then on the "
      "baseline is one frame ahead, the replayed inputs land a frame late, and "
-     "5,835 of 6,000 frames differ. The same emulator with that one call skipped "
-     "scores 0.9998 here."),
+     "5,835 of 6,000 frames differ. The current build, which follows the "
+     "convention v1.1 states, scores 0.9998 here."),
     ("deepseek-nova", "deepseek", "nova-the-squirrel-gameplay", 1080, 720,
      "DeepSeek V4.1 Flash on Nova the Squirrel: a near-miss",
      "4,973 of 5,400 frames differ: sprites and some background tiles are drawn "
@@ -338,11 +341,12 @@ def leaderboard_rows(entries):
         cells = "".join(f'<td class="num">{fmt(section(e, s))}</td>' for s in SECTIONS)
         if o is None:
             cells = '<td colspan="3" class="muted">never compiled</td>'
+        time = e.get("time") or f'{e["hours"]} h'
         rows.append(
             f'<tr><td class="num">{i if o is not None else "—"}</td>'
             f'<td><a href="{BASE}/model/{e["slug"]}/">{esc(e["name"])}</a>'
             f'<div class="small muted">{esc(e["harness"])} · {esc(e["thinking"])} thinking</div></td>'
-            f'<td class="num">{e["hours"]} h</td>'
+            f'<td class="num">{time}</td>'
             f'<td class="num"><strong>{fmt(o)}</strong>{bar(o)}</td>{cells}</tr>'
         )
     return "\n".join(rows)
@@ -356,7 +360,7 @@ def build_index(out, entries):
         for n, o, p, r, a in REFERENCE_POINTS
     )
     nc = (f'<tr><td><a href="{BASE}/model/nes-core/">nes-core</a> baseline'
-          f'<div class="small muted">0.9426 once the first-call convention is matched; '
+          f'<div class="small muted">0.5811 under v1.0, before the ABI stated the first-call convention; '
           f'<a href="{BASE}/blog/reward-hacking/#nes-core">why</a></div></td>'
           f'<td class="num">{fmt(overall(base))}</td>'
           + "".join(f'<td class="num">{fmt(section(base, s))}</td>' for s in SECTIONS) + "</tr>")

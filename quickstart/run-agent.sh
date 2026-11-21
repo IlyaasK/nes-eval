@@ -30,6 +30,8 @@
 #   --native           grade with target/release/grader instead of the docker image
 #   --stall-minutes M  restart an agent whose log hasn't grown for M minutes
 #                      (default 15; 0 disables)
+#   --resume-workspace start on a /task that already holds work (by default
+#                      the run refuses: it must start from a fresh workspace)
 #
 # Environment:
 #   AGENT_CMD            command run in the container; the prompt is appended
@@ -74,6 +76,7 @@ COMMIT_MIN=30
 GRADE_HOURS=4
 GRADE_MODE=()
 STALL_MIN=15
+RESUME_WS=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -83,6 +86,7 @@ while [ $# -gt 0 ]; do
         --grade-every)  GRADE_HOURS="$2"; shift 2 ;;
         --native)       GRADE_MODE=(--native); shift ;;
         --stall-minutes) STALL_MIN="$2"; shift 2 ;;
+        --resume-workspace) RESUME_WS=1; shift ;;
         -h|--help)      sed -n '2,52p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown argument: $1 (see --help)" >&2; exit 2 ;;
     esac
@@ -142,6 +146,35 @@ dc ps --services --filter status=running 2>/dev/null | grep -qx task \
     || { echo "error: task container not running (cd quickstart && docker compose up -d)" >&2; exit 1; }
 dc ps --services --filter status=running 2>/dev/null | grep -qx services \
     || { echo "error: services container not running (cd quickstart && docker compose up -d)" >&2; exit 1; }
+
+# A run starts from a fresh workspace. task-work is a named volume: it
+# survives `docker compose down`, and the image's /task (spec, TASK.md,
+# dev ROMs, initial commit) is copied into it only on its first mount. Reusing
+# it starts the agent on the previous run's work (2026-10-15:
+# deepseek-v4.1-flash-24h began on top of its own ended-early 2h43m attempt)
+# and, after the image is rebuilt, hands it a stale spec.
+workspace_problem() {
+    local n f
+    n="$(in_task git -C /task rev-list --count HEAD 2>/dev/null || echo '?')"
+    [ "$n" = 1 ] || { echo "/task has $n commits, not just the initial one"; return; }
+    [ -z "$(in_task git -C /task status --porcelain 2>/dev/null)" ] \
+        || { echo "/task has uncommitted files"; return; }
+    for f in spec/ABI.md:spec/ABI.md spec/nes_palette.pal:spec/nes_palette.pal quickstart/task/TASK.md:TASK.md; do
+        # the container path is read inside the container (a `<` here would open it on the host)
+        [ "$(sha256sum < "$REPO/${f%%:*}" | cut -d' ' -f1)" = "$(in_task sha256sum "/task/${f#*:}" 2>/dev/null | cut -d' ' -f1)" ] \
+            || { echo "/task/${f#*:} differs from the repository's ${f%%:*} (stale volume)"; return; }
+    done
+}
+if [ "$RESUME_WS" = 0 ]; then
+    problem="$(workspace_problem)"
+    if [ -n "$problem" ]; then
+        echo "error: the task workspace is not fresh: $problem." >&2
+        echo "  Recreate it: cd quickstart && docker compose down && docker volume rm nes-eval_task-work && docker compose up -d --build" >&2
+        echo "  (agent-home, with the installed agent CLI, is kept), or pass --resume-workspace to continue on it deliberately." >&2
+        rmdir "$RUN_DIR" 2>/dev/null || true
+        exit 1
+    fi
+fi
 
 START="$(now)"
 DEADLINE=$((START + TOTAL_S))

@@ -80,11 +80,15 @@ impl WasmCandidate {
         if fuel_load_rom == 0 {
             bail!("grader config: fuel_load_rom must be > 0 (got 0 — typo in grader.yaml?)");
         }
-        // Fuel needs config. Everything else is default — cranelift,
-        // no parallel compilation (single module, doesn't help).
+        // Fuel needs config. NaN canonicalization and deterministic relaxed
+        // SIMD keep a candidate's float results identical on every host
+        // (relaxed SIMD instructions otherwise follow the host CPU's native
+        // behaviour). Everything else is default — cranelift, no parallel
+        // compilation (single module, doesn't help).
         let mut config = wasmtime::Config::new();
         config.consume_fuel(true);
         config.cranelift_nan_canonicalization(true);
+        config.relaxed_simd_deterministic(true);
         let engine = Engine::new(&config)?;
 
         let module = Module::new(&engine, wasm_bytes)

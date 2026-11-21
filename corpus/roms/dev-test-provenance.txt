@@ -1,0 +1,6 @@
+Full vendoring record for corpus/roms/dev/test/. It is kept outside
+corpus/roms/dev/ (which the task image copies into the agent's /task/dev-roms/)
+because it names the emulator the ROMs were vendored from, which is also the
+grader's reference; agents must not learn which emulator grades them. The
+agent-visible dev/test/LICENSE.txt carries the same files, hashes and
+authorship without it.
