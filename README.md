@@ -1,4 +1,6 @@
-# NES Eval
+# NES Eval - [Watch Demo](https://www.youtube.com/watch?v=cK4Iy78Y_bQ)
+
+[![NES Eval Demo](https://img.youtube.com/vi/cK4Iy78Y_bQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=cK4Iy78Y_bQ)
 
 A deterministic benchmark for NES emulators, modelled on
 [GBA Eval](https://github.com/mechanize-work/gba-eval). A candidate emulator
